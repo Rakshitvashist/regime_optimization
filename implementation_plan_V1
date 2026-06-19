@@ -1,0 +1,253 @@
+# Implementation Plan: Deep Learning Indicator Optimization
+
+## Goal
+
+Look back through the entire historical OHLCV + indicator dataset for each symbol and **learn — via deep learning — what the optimal value of every indicator parameter would have been** to give the correct price direction signal at each point in time. Then persist those discovered optimal parameters and use them in live predictions.
+
+Your machine (i9-14900KS · RTX 5090 31 GB · 192 GB RAM) makes this fully viable in minutes even for the full NIFTY 500 universe.
+
+---
+
+## Core Idea (Plain Language)
+
+> **Current system**: Fixed indicator parameters (RSI=14, BB=20, ATR=14, etc.) → compute signals → vote → predict.
+>
+> **New system**: For every bar of historical data, a deep learning model looks at recent OHLCV patterns and **predicts the best parameter values for that moment** → compute signals with those parameters → predict. Then the model is trained so that those parameter choices maximised directional accuracy over all past dates.
+
+This is achieved via **three complementary deep learning approaches**, all integrated into the existing `optimization/` package:
+
+---
+
+## Architecture Overview
+
+```
+Historical OHLCV Data
+        │
+        ▼
+┌─────────────────────────────────┐
+│  DL Indicator Optimizer         │  ← NEW (optimization/dl_optimizer.py)
+│                                 │
+│  ┌─────────────────────────┐    │
+│  │  LSTM Encoder           │    │  Reads sliding window of OHLCV returns
+│  │  (seq_len=60 bars)      │    │  Captures temporal regime patterns
+│  └────────┬────────────────┘    │
+│           │                     │
+│  ┌────────▼────────────────┐    │
+│  │  Temporal Attention     │    │  Focuses on most predictive time steps
+│  └────────┬────────────────┘    │
+│           │                     │
+│  ┌────────▼────────────────┐    │
+│  │  Parameter Head         │    │  Outputs: optimal RSI period, BB period,
+│  │  (Linear + Sigmoid)     │    │  ATR period, MA fast/slow, BB std, etc.
+│  └────────┬────────────────┘    │
+│           │                     │
+│  ┌────────▼────────────────┐    │
+│  │  Signal Head            │    │  Outputs: per-indicator weight scores
+│  │  (Linear + Tanh)        │    │  (which indicator matters NOW)
+│  └─────────────────────────┘    │
+└──────────────────────────────────┘
+        │
+        ▼
+ Discovered optimal params per bar
+        │
+        ▼
+ IndicatorLibrary.calculate_all_indicators(df, params=discovered_params)
+        │
+        ▼
+ ConsensusPredictor (with learned weights)
+        │
+        ▼
+ Forward signal → compared to actual N-day return → Loss → Backprop
+```
+
+---
+
+## What Gets Built (3 New Modules + Integration)
+
+### Module 1: `optimization/dl_optimizer.py` — Core Deep Learning Engine
+
+**LSTM + Temporal Attention Parameter Predictor**
+
+```python
+# Concept
+class IndicatorParamPredictor(nn.Module):
+    # Input:  (batch, seq_len=60, features=5) — normalized OHLCV returns + volatility
+    # Output: (batch, n_params) — optimal RSI period, BB period, ATR period, etc.
+    #         (batch, n_indicators) — per-indicator importance weights
+    
+    LSTM(input_size=5, hidden_size=256, num_layers=3, dropout=0.2, bidirectional=False)
+    MultiHeadAttention(embed_dim=256, num_heads=8)
+    Linear(256 -> n_params)   # Parameter head: sigmoid-scaled to valid ranges
+    Linear(256 -> n_ind)      # Weight head: tanh → per-indicator consensus weights
+```
+
+**Training Objective** — same hybrid metric as the existing system but differentiable:
+
+```
+Loss = -w_acc * soft_directional_accuracy + w_ret * mean_ATR_relative_return
+     + λ₁‖params‖ + λ₂‖weights‖   # regularization
+```
+
+The model is trained **end-to-end**: OHLCV patterns → predicted parameters → (indicator values computed approximately via differentiable ops) → direction score → loss → backprop.
+
+**Key design decisions for your hardware:**
+- **GPU acceleration**: Full PyTorch CUDA on RTX 5090 — 31 GB VRAM is enough to train across ALL 50-500 symbols simultaneously
+- **Mixed precision** (bf16/fp16) for speed
+- **Batch across symbols**: Pool all symbols' training windows into one large GPU batch → train one global model that generalizes across Indian market stocks
+
+---
+
+### Module 2: `optimization/regime_lstm.py` — Regime-Aware Parameter Switching
+
+Different indicator parameters work differently in trending vs ranging markets. This module:
+
+1. Detects the **current market regime** (trending / ranging / volatile) via a secondary LSTM head
+2. Selects regime-specific parameter sets:
+   - **Trending**: shorter RSI periods (8-12), wider BB std (2.5), longer MA slow (100-200)
+   - **Ranging**: standard RSI (14-21), tighter BB (1.5-2.0), shorter lookbacks
+   - **Volatile**: wider ATR multipliers, looser thresholds
+
+```python
+class RegimeAwareLSTM(nn.Module):
+    regime_encoder: LSTM  # Detects regime from recent volatility + trend
+    regime_head: Linear   # Softmax → (trending_prob, ranging_prob, volatile_prob)
+    param_nets: nn.ModuleList  # One MLP per regime → regime-specific optimal params
+    # Final params = weighted sum of regime-specific params by regime probabilities
+```
+
+---
+
+### Module 3: `optimization/dl_param_search.py` — DL-Guided Optuna Search
+
+Bridges the DL model with the existing Optuna search. Instead of random TPE initialization:
+
+1. Run the LSTM forward pass to **predict good starting parameter regions**
+2. Feed those as **warm starts** into Optuna
+3. Optuna then refines from that intelligent starting point
+
+This **dramatically reduces Optuna trials needed** (from 100+ to 20-30) while finding better solutions.
+
+---
+
+### Integration Points (Minimal Changes to Existing Code)
+
+| File | Change |
+|------|--------|
+| [optimize_indicators.py](file:///d:/PC2539/ML_regime/optimize_indicators.py) | Add `--method dl`, `--method lstm`, `--method regime_lstm` to `--method` choices |
+| [optimization/runner.py](file:///d:/PC2539/ML_regime/optimization/runner.py) | Add `elif method in ("dl", "lstm", "regime_lstm"):` branch |
+| [optimization/store.py](file:///d:/PC2539/ML_regime/optimization/store.py) | Support DL artifact format (model weights + discovered params) |
+| [optimization/config.py](file:///d:/PC2539/ML_regime/optimization/config.py) | Add `dl_model_path` field to `IndicatorConfig` |
+| [optimization/__init__.py](file:///d:/PC2539/ML_regime/optimization/__init__.py) | Export new modules |
+| [requirements.txt](file:///d:/PC2539/ML_regime/requirements.txt) | Add `torch`, `torchvision` |
+
+---
+
+## Proposed Changes
+
+---
+
+### New Files
+
+#### [NEW] `optimization/dl_optimizer.py`
+Core LSTM + Attention model. Contains:
+- `IndicatorParamPredictor` (nn.Module) — the main model
+- `DifferentiableIndicatorApproximator` — smooth surrogate for key indicator values (avoids TA-Lib in backprop)
+- `train_dl(indicators_df, price, atr, forward_days, ...)` — training entry point
+- `DLModel` dataclass — inference wrapper (predictions_frame, to_config, top_indicators)
+
+#### [NEW] `optimization/regime_lstm.py`
+- `RegimeAwareLSTM` (nn.Module) — regime-gated parameter predictor
+- `train_regime_lstm(...)` — training entry point
+
+#### [NEW] `optimization/dl_param_search.py`
+- `dl_guided_optuna(base_config, score_fn, dl_model, budget, seed)` — warm-start Optuna from DL predictions
+
+#### [NEW] `optimization/differentiable_indicators.py`
+- Smooth PyTorch implementations of RSI, EMA, BB, ATR using `torch.conv1d` / cumulative sums — enables backprop through indicator computation
+- These are **training-only approximations**; TA-Lib is still used for final production signals
+
+---
+
+### Modified Files
+
+#### [MODIFY] [optimize_indicators.py](file:///d:/PC2539/ML_regime/optimize_indicators.py)
+- Extend `--method` choices to include `dl`, `lstm`, `regime_lstm`
+- Add `--dl-seq-len` (default 60), `--dl-hidden` (default 256), `--dl-layers` (default 3), `--dl-epochs` (default 500), `--dl-lr` (default 1e-3), `--dl-device` (default `cuda`)
+
+#### [MODIFY] [optimization/runner.py](file:///d:/PC2539/ML_regime/optimization/runner.py)
+- Add branch for DL methods after the existing `if method == "nn":` block
+- DL branch: trains the LSTM on train slice → evaluates on held-out → accept/reject
+
+#### [MODIFY] [optimization/batch.py](file:///d:/PC2539/ML_regime/optimization/batch.py)
+- `run_global` DL path: pool ALL symbols' train data into a single GPU batch for global model training (leverages full 192 GB RAM + 31 GB VRAM)
+
+#### [MODIFY] [optimization/store.py](file:///d:/PC2539/ML_regime/optimization/store.py)
+- Save DL model checkpoint alongside JSON artifact
+- `resolve_config` can load DL model for inference-time parameter prediction
+
+#### [MODIFY] [optimization/config.py](file:///d:/PC2539/ML_regime/optimization/config.py)
+- Add `dl_model_path: Optional[str]` to `IndicatorConfig`
+- Add `dl_params_discovered: Optional[Dict]` — the mean optimal params learned by the DL model
+
+#### [MODIFY] [requirements.txt](file:///d:/PC2539/ML_regime/requirements.txt)
+- Add `torch>=2.3.0`, `torchvision`
+
+---
+
+## Open Questions
+
+> [!IMPORTANT]
+> **Q1: PyTorch already installed?**
+> Do you have PyTorch with CUDA already installed in your Python environment? (You can check: `python -c "import torch; print(torch.cuda.is_available())"`)
+> If not, I'll include the correct install command for RTX 5090 (CUDA 12.x).
+
+> [!IMPORTANT]
+> **Q2: Training granularity**
+> Should the DL model learn **one global model** across all NIFTY 50/500 symbols (recommended — more data, better generalization, uses the full GPU), or **one model per symbol** (more specific, slower)?
+> **Recommended**: Global model first, then per-symbol fine-tuning.
+
+> [!IMPORTANT]
+> **Q3: Sequence length / lookback**
+> How many bars of history should the LSTM see when deciding the optimal parameters for today?
+> - **60 bars** (~3 months of daily data) — default
+> - **120 bars** (~6 months) — richer context but slower
+> - **252 bars** (~1 year) — best for regime detection but needs more data per symbol
+
+> [!NOTE]
+> **Q4: What to do when DL model is not available at prediction time?**
+> The system will automatically fall back: DL model → numgrad optimizer → default config (same existing precedence chain). No disruption to existing pipeline.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+```bash
+pytest tests/unit/test_dl_optimizer.py -q        # Model shape, forward pass, no NaN
+pytest tests/unit/test_differentiable_ind.py -q  # Smooth RSI/EMA close to TA-Lib values
+pytest tests/integration/test_dl_single_symbol.py -q  # DL run reports baseline vs tuned
+pytest tests/integration/test_no_lookahead.py -q      # Existing test still passes
+```
+
+### Manual Verification
+1. Run `python optimize_indicators.py --scope symbol --symbol RELIANCE --method dl --seed 42`
+2. Confirm: prints discovered optimal RSI/BB/ATR periods found by the DL model for that symbol
+3. Confirm: held-out objective ≥ baseline (or clear "no_improvement" with reason)
+4. Run `python optimize_indicators.py --scope batch --method dl --jobs 1 --device cuda`
+5. Watch GPU utilization spike to >80% on RTX 5090 during training
+
+---
+
+## Execution Order
+
+1. `requirements.txt` — add PyTorch
+2. `optimization/differentiable_indicators.py` — smooth indicator approximations (needed for backprop)
+3. `optimization/dl_optimizer.py` — core LSTM model + training loop
+4. `optimization/regime_lstm.py` — regime-aware variant
+5. `optimization/dl_param_search.py` — DL-guided Optuna warm start
+6. `optimization/config.py` — add DL fields
+7. `optimization/store.py` — DL artifact save/load
+8. `optimization/runner.py` — wire DL method branch
+9. `optimization/batch.py` — GPU-batched global training
+10. `optimize_indicators.py` — expose new CLI flags
+11. Tests

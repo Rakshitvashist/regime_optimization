@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ml-regime/contracts/run-summary.schema.json",
+  "title": "OptimizationRunSummary",
+  "description": "Machine-readable summary of an optimization run; every targeted symbol is accounted for (FR-011, FR-012, SC-006).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run_id", "scope", "seed", "objective", "totals", "symbols", "created_at"],
+  "properties": {
+    "run_id": { "type": "string" },
+    "scope": { "type": "string", "enum": ["global", "symbol", "batch"] },
+    "seed": { "type": "integer" },
+    "objective": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["forward_days", "w_acc", "w_ret", "embargo_bars"],
+      "properties": {
+        "forward_days": { "type": "array", "items": { "type": "integer", "minimum": 1 }, "minItems": 1 },
+        "w_acc": { "type": "number", "minimum": 0 },
+        "w_ret": { "type": "number", "minimum": 0 },
+        "embargo_bars": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "global_result": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": { "type": "string", "enum": ["improved", "no_improvement", "skipped", "failed"] },
+        "artifact_path": { "type": ["string", "null"] },
+        "heldout_objective": { "type": ["number", "null"] },
+        "baseline_objective": { "type": ["number", "null"] }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["targeted", "improved", "no_improvement", "skipped", "failed"],
+      "properties": {
+        "targeted": { "type": "integer", "minimum": 0 },
+        "improved": { "type": "integer", "minimum": 0 },
+        "no_improvement": { "type": "integer", "minimum": 0 },
+        "skipped": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "symbols": {
+      "type": "array",
+      "description": "One entry per targeted symbol; the array length MUST equal totals.targeted (no silent omissions).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["symbol", "status"],
+        "properties": {
+          "symbol": { "type": "string" },
+          "status": { "type": "string", "enum": ["improved", "no_improvement", "skipped", "failed"] },
+          "artifact_path": { "type": ["string", "null"] },
+          "heldout_objective": { "type": ["number", "null"] },
+          "baseline_objective": { "type": ["number", "null"] },
+          "improvement_delta": { "type": ["number", "null"] },
+          "reason": {
+            "type": ["string", "null"],
+            "description": "Required (non-null) when status is 'skipped' or 'failed'."
+          }
+        }
+      }
+    },
+    "created_at": { "type": "string", "format": "date-time" }
+  }
+}

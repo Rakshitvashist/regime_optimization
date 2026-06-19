@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(& \"D:\\\\Live_share\\\\ML_regime\\\\.specify\\\\scripts\\\\powershell\\\\setup-plan.ps1\" -Json)",
+      "PowerShell(python -m pip install --quiet pytest jsonschema 2>&1 | Select-Object -Last 5; Write-Output \"exit=$LASTEXITCODE\")",
+      "PowerShell($env:PYTHONPATH=\".\"; .\\\\.venv\\\\Scripts\\\\python.exe /tmp/bench.py 2>&1 | Select-Object -Last 12)"
+    ]
+  }
+}

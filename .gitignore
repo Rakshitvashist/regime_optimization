@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+
+# Editors
+.vscode/
+.idea/
+
+# Optimizer generated artifacts (provenance differs per run; not source)
+runs/
+
+# ── Market data (multi-GB — never commit) ───────────────────────────
+*.csv
+nifty50_host/
+nifty500_host/
+nifty_index_host/
+processed_indicators/
+processed_indicators_500/
+processed_indicators_index/
+processed_intraday/
+intraday/
+
+# ── Generated artifacts / models / dashboards ───────────────────────
+configs/
+configs_intraday/
+*.joblib
+*.pt
+*.pkl
+vol_dashboard.html
+
+# ── Large binaries ──────────────────────────────────────────────────
+*.pdf
+

@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ml-regime/contracts/tuned-config.schema.json",
+  "title": "TunedConfigArtifact",
+  "description": "Durable, versioned output of an accepted optimization run; consumed by the predictor.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scope",
+    "version",
+    "config",
+    "objective",
+    "window",
+    "seed",
+    "heldout_metrics",
+    "baseline_metrics",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "examples": ["1.0.0"] },
+    "scope": { "type": "string", "enum": ["global", "symbol"] },
+    "symbol": {
+      "type": ["string", "null"],
+      "description": "Required (non-null) when scope = symbol; null for global."
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic per (scope, symbol). Never overwritten in place."
+    },
+    "config": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["indicator_params", "weights", "is_default"],
+      "properties": {
+        "indicator_params": {
+          "type": "object",
+          "description": "Tunable indicator parameters. Keys MUST exist in the declared search space; values MUST be within range.",
+          "additionalProperties": { "type": "number" }
+        },
+        "weights": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["category", "voting_threshold", "regime_multipliers"],
+          "properties": {
+            "category": {
+              "type": "object",
+              "description": "Per-category consensus weights, each >= 0.",
+              "additionalProperties": { "type": "number", "minimum": 0 }
+            },
+            "voting_threshold": { "type": "number", "minimum": 0, "exclusiveMaximum": 1 },
+            "regime_multipliers": {
+              "type": "object",
+              "additionalProperties": { "type": "number", "minimum": 0 }
+            }
+          }
+        },
+        "is_default": { "type": "boolean" }
+      }
+    },
+    "objective": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["forward_days", "w_acc", "w_ret"],
+      "properties": {
+        "forward_days": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 },
+          "minItems": 1
+        },
+        "w_acc": { "type": "number", "minimum": 0 },
+        "w_ret": { "type": "number", "minimum": 0 }
+      }
+    },
+    "window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["train_start", "train_end", "embargo_bars", "heldout_start", "heldout_end"],
+      "properties": {
+        "train_start": { "type": "string", "format": "date" },
+        "train_end": { "type": "string", "format": "date" },
+        "embargo_bars": { "type": "integer", "minimum": 1 },
+        "heldout_start": { "type": "string", "format": "date" },
+        "heldout_end": { "type": "string", "format": "date" }
+      }
+    },
+    "seed": { "type": "integer" },
+    "heldout_metrics": { "$ref": "#/$defs/metrics" },
+    "baseline_metrics": { "$ref": "#/$defs/metrics" },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hit_ratio", "mean_directional_return", "objective_score", "signal_count"],
+      "properties": {
+        "hit_ratio": {
+          "type": "object",
+          "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 }
+        },
+        "mean_directional_return": {
+          "type": "object",
+          "additionalProperties": { "type": "number" }
+        },
+        "objective_score": { "type": "number" },
+        "signal_count": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "train_score": { "type": "number" }
+      }
+    }
+  }
+}

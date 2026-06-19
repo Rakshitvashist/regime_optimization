@@ -1,0 +1,26 @@
+# ML_regime dependencies
+#
+# Existing stack (used by the dashboard pipeline: nifty_*.py, start.py,
+# Consensus_predictor .py, Hit_ratio_backtester .py, generate_summary*.py)
+numpy
+pandas
+scipy
+TA-Lib
+numba
+scikit-learn
+yfinance
+
+# Feature 001-indicator-optimization
+optuna        # derivative-free (TPE) search over indicator parameters
+jsonschema    # contract tests: artifact / run-summary schema conformance
+pytest        # unit / contract / integration tests
+
+# Feature 002-deep-learning-optimization
+# RTX 5090 is Blackwell (sm_120) -> requires a CUDA 12.8+ build (cu128).
+# A cu124 build imports but fails at runtime ("no kernel image available").
+# Install torch SEPARATELY from the cu128 index BEFORE this file so the
+# CPU-only PyPI wheel is not pulled in:
+#   uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+torch         # LSTM + Attention indicator parameter predictor (GPU-accelerated, sm_120)
+torchvision   # supporting utilities
+tqdm          # training progress bars
