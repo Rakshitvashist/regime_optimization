@@ -160,29 +160,48 @@ function Hist({inst}){
 function Badge({r}){const cl=({quiet:'b-quiet',normal:'b-normal',explosive:'b-explosive'})[r]||'b-na';
  return <span className={'badge '+cl}>{r}</span>;}
 
+function BandTable({bands,price,title}){
+ return <div style={{flex:1,minWidth:300}}><div className="sub" style={{marginBottom:4}}>{title}</div>
+  <table><thead><tr><th className="l">H</th><th>-2σ</th><th>-1.5σ</th><th>-1σ</th><th>price</th><th>+1σ</th><th>+1.5σ</th><th>+2σ</th></tr></thead>
+   <tbody>{bands.map(b=><tr key={b.H}><td className="l">{b.H}d</td><td>{fmt(b.dn2)}</td><td>{fmt(b['dn1.5'])}</td><td>{fmt(b.dn1)}</td>
+     <td><b>{fmt(price)}</b></td><td>{fmt(b.up1)}</td><td>{fmt(b['up1.5'])}</td><td>{fmt(b.up2)}</td></tr>)}</tbody></table></div>;}
 function PriceRange({pb}){ if(!pb) return null;
- return <table><thead><tr><th className="l">Horizon</th><th>-2σ</th><th>-1.5σ</th><th>-1σ</th>
-   <th>price</th><th>+1σ</th><th>+1.5σ</th><th>+2σ</th><th>±move</th></tr></thead>
-  <tbody>{pb.bands.map(b=><tr key={b.H}><td className="l">{b.H}d</td>
-    <td>{fmt(b.dn2)}</td><td>{fmt(b['dn1.5'])}</td><td>{fmt(b.dn1)}</td>
-    <td><b>{fmt(pb.current_price)}</b></td><td>{fmt(b.up1)}</td><td>{fmt(b['up1.5'])}</td><td>{fmt(b.up2)}</td>
-    <td>{fmt(b.move_pct)}%</td></tr>)}</tbody></table>;}
+ return <div style={{display:'flex',gap:14,flexWrap:'wrap'}}>
+   <BandTable bands={pb.bands} price={pb.current_price} title="No-drift (pure volatility band)"/>
+   <BandTable bands={pb.bands_drift} price={pb.current_price} title={'Drift-adjusted — recentered on trend ('+fmt(pb.drift_daily_pct)+'%/day)'}/>
+  </div>;}
 
-function Corr({corr}){ if(!corr) return null;
- const cell=v=>{const a=Math.abs(v); const g=v>0?63:248,r=v>0?185:81;
-   return {background:`rgba(${v>0?'63,185,80':'248,81,73'},${(a*0.55).toFixed(2)})`,
-     padding:'5px 7px',textAlign:'center',border:'1px solid #30363d',fontSize:12};};
- return <div style={{overflowX:'auto'}}><table><thead><tr><th className="l"></th>
-   {corr.labels.map(l=><th key={l} style={{fontSize:11}}>{l}</th>)}</tr></thead>
-  <tbody>{corr.labels.map((l,i)=><tr key={l}><td className="l" style={{fontSize:12}}>{l}</td>
-    {corr.matrix[i].map((v,j)=><td key={j} style={cell(v)}>{v.toFixed(2)}</td>)}</tr>)}</tbody></table></div>;}
+function Reliability({cov}){ if(!cov) return null;
+ const rows=[]; Object.keys(cov).forEach(H=>['raw','drift'].forEach(mo=>rows.push([H,mo,cov[H][mo]])));
+ const c=v=>({color:Math.abs(v-(v>0.8?(v>0.9?0.954:0.866):0.683))<0.04?'var(--grn)':'#e6e6e6'});
+ return <div><table><thead><tr><th className="l">H</th><th className="l">band</th><th>1σ<br/><span className="sub">~68%</span></th>
+    <th>1.5σ<br/><span className="sub">~87%</span></th><th>2σ<br/><span className="sub">~95%</span></th></tr></thead>
+  <tbody>{rows.map(([H,mo,d],i)=><tr key={i}><td className="l">{mo==='raw'?H+'d':''}</td>
+    <td className="l">{mo}</td><td>{(d['1']*100).toFixed(0)}%</td><td>{(d['1.5']*100).toFixed(0)}%</td><td>{(d['2']*100).toFixed(0)}%</td></tr>)}</tbody></table>
+  <p className="sub" style={{marginTop:6}}>% of times realized price landed in the band. Close to 68/87/95 = well-calibrated; drift fixes trending names.</p></div>;}
+
+function Corr({corr}){ const ref=useRef();
+ useEffect(()=>{ if(!corr||!window.Plotly) return; const L=corr.labels;
+  window.Plotly.react(ref.current,[{z:corr.matrix,x:L,y:L,type:'heatmap',zmin:-1,zmax:1,
+    colorscale:[[0,'#f85149'],[0.5,'#0e1117'],[1,'#3fb950']],
+    text:corr.matrix,texttemplate:'%{text}',textfont:{size:10},showscale:true}],
+   {paper_bgcolor:'#161b22',plot_bgcolor:'#161b22',font:{color:'#e6e6e6'},margin:{t:8,r:8,b:90,l:90},
+    xaxis:{tickangle:-40},yaxis:{autorange:'reversed'}},{displayModeBar:false,responsive:true});
+ },[corr]);
+ if(!corr) return null;
+ return <div><div ref={ref} style={{height:380}}/>
+  <div style={{marginTop:8}}><span className="sub">Strongest relationships: </span>
+   {corr.top.map((p,i)=><span key={i} className="badge" style={{marginRight:6,
+     background:p[2]>0?'rgba(63,185,80,.18)':'rgba(248,81,73,.18)',color:p[2]>0?'var(--grn)':'var(--red)'}}>{p[0]}–{p[1]} {p[2]}</span>)}
+  </div></div>;}
 
 function App(){
  const [d,setD]=useState(null),[corr,setCorr]=useState(null),[ts,setTs]=useState(0),[sel,setSel]=useState(null);
- const load=()=>fetch('/data').then(r=>r.json()).then(j=>{
-   const inst=j.data.instruments||j.data; setD(inst); setCorr(j.data.correlation||null); setTs(j.ts);
-   setSel(s=>s&&inst[s]?s:Object.keys(inst)[0]);});
- useEffect(()=>{load();const t=setInterval(load,30000);return()=>clearInterval(t);},[]);
+ const apply=(j)=>{const inst=j.data.instruments||j.data; setD(inst); setCorr(j.data.correlation||null);
+   setTs(j.ts); setSel(s=>s&&inst[s]?s:Object.keys(inst)[0]);};
+ const load=()=>{ if(window.__PRELOAD__){apply(window.__PRELOAD__);return;}
+   fetch('/data').then(r=>r.json()).then(apply);};
+ useEffect(()=>{load(); if(window.__PRELOAD__) return; const t=setInterval(load,30000);return()=>clearInterval(t);},[]);
  if(!d||!sel) return <div className="wrap">Loading dashboard…</div>;
  const inst=d[sel]; const c20=inst.forecast_cone.find(r=>r.H===20)||{};
  const intr=inst.intraday||{};
@@ -232,11 +251,12 @@ function App(){
     </div>
    </div>
 
-   <div className="row">
-    <div className="panel" style={{flex:1,minWidth:340}}><h3>Expected price range (σ) — {sel} @ {fmt(inst.price_bands&&inst.price_bands.current_price)}</h3>
-     <PriceRange pb={inst.price_bands}/>
-     <p className="sub" style={{marginTop:8}}>Price = current · exp(±kσ), σ from the HAR vol forecast over 7d / 20d.</p></div>
-   </div>
+   <div className="panel"><h3>Expected price range (σ) — {sel} @ {fmt(inst.price_bands&&inst.price_bands.current_price)}</h3>
+    <PriceRange pb={inst.price_bands}/>
+    <p className="sub" style={{marginTop:8}}>Price = current · exp(μ ± kσ), σ from the HAR vol forecast (7d / 20d); μ = recent drift.</p></div>
+
+   <div className="panel" style={{maxWidth:560}}><h3>Band reliability (coverage backtest) — {sel}</h3>
+    <Reliability cov={inst.coverage}/></div>
 
    <div className="panel"><h3>Cross-instrument correlation (daily returns) — find the relationships</h3>
     <Corr corr={corr}/>

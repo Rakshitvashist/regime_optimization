@@ -114,24 +114,70 @@ def _garch_cone(df, rv):
     return out
 
 
+def _daily_log_close(df):
+    return np.log(df["Close"].astype(float).groupby(drv._day_index(df.index)).last())
+
+
 def _price_bands(df, rv, horizons=(7, 20)):
-    """sigma PRICE ranges from the vol forecast: P0 * exp(+/- k*sigma_H),
-    sigma_H = H-day return std = sqrt(forecast avg daily var * H)."""
-    P0 = float(df["Close"].astype(float).iloc[-1])
-    out = {"current_price": round(P0, 2), "bands": []}
+    """sigma PRICE ranges: P0 * exp(mu_H +/- k*sigma_H). 'bands' = no drift,
+    'bands_drift' = recentered on recent drift (fixes strongly-trending names)."""
+    lc = _daily_log_close(df)
+    P0 = float(np.exp(lc.iloc[-1]))
+    mu_daily = float(lc.diff().tail(120).mean())     # recent drift (causal at latest bar)
+    out = {"current_price": round(P0, 2), "drift_daily_pct": round(mu_daily * 100, 3),
+           "bands": [], "bands_drift": []}
     for H in horizons:
         F, target = har_table(rv, H)
         comp = F.notna().all(axis=1) & target.notna()
         m = LinearRegression().fit(F[comp].to_numpy(), target[comp].to_numpy())
         last = F[F.notna().all(axis=1)].iloc[-1:]
-        sig_h = float(np.sqrt(np.exp(m.predict(last.to_numpy())[0]) * H))  # H-day vol
+        sig_h = float(np.sqrt(np.exp(m.predict(last.to_numpy())[0]) * H))
+        muH = mu_daily * H
         e = {"H": H, "move_pct": round(sig_h * 100, 2)}
+        ed = {"H": H, "move_pct": round(sig_h * 100, 2)}
         for k in (1.0, 1.5, 2.0):
             ks = f"{k:g}"
             e[f"up{ks}"] = round(P0 * np.exp(k * sig_h), 2)
             e[f"dn{ks}"] = round(P0 * np.exp(-k * sig_h), 2)
+            ed[f"up{ks}"] = round(P0 * np.exp(muH + k * sig_h), 2)
+            ed[f"dn{ks}"] = round(P0 * np.exp(muH - k * sig_h), 2)
         out["bands"].append(e)
+        out["bands_drift"].append(ed)
     return out
+
+
+def _coverage(df, rv, horizons=(7, 20), folds=8, start_frac=0.4):
+    """Walk-forward band coverage at 1/1.5/2 sigma: how often realized price landed
+    inside, RAW vs DRIFT-adjusted (drift = trailing-120d mean daily return)."""
+    lc = _daily_log_close(df)
+    dret = lc.diff()
+    KS = [1.0, 1.5, 2.0]
+    res = {}
+    for H in horizons:
+        F, target = har_table(rv, H)
+        rH = (lc.shift(-H) - lc).reindex(rv.index)
+        mur = dret.rolling(120, min_periods=30).mean().reindex(rv.index)
+        both = F.notna().all(axis=1) & target.notna()
+        Xb = F[both].to_numpy(); yb = target[both].to_numpy()
+        rHb = rH[both].to_numpy(); mub = mur[both].to_numpy()
+        n = len(Xb); start = int(n * start_frac); step = max(1, (n - start) // folds)
+        hr = {k: [] for k in KS}; hd = {k: [] for k in KS}
+        for f in range(folds):
+            lo = start + f * step
+            hi = (start + (f + 1) * step) if f < folds - 1 else n
+            if lo - H < 100:
+                continue
+            m = LinearRegression().fit(Xb[:lo - H], yb[:lo - H])
+            sigH = np.sqrt(np.exp(m.predict(Xb[lo:hi])) * H)
+            r = rHb[lo:hi]; md = mub[lo:hi] * H; v = np.isfinite(r) & np.isfinite(md)
+            for k in KS:
+                hr[k].append(np.abs(r[v]) < k * sigH[v])
+                hd[k].append(np.abs(r[v] - md[v]) < k * sigH[v])
+        res[str(H)] = {
+            "raw": {f"{k:g}": round(float(np.mean(np.concatenate(hr[k]))), 3) for k in KS},
+            "drift": {f"{k:g}": round(float(np.mean(np.concatenate(hd[k]))), 3) for k in KS},
+        }
+    return res
 
 
 def _daily_ret(path):
@@ -186,6 +232,7 @@ def instrument_data(daily_path, symbol30, garch=False):
         "garch": _garch_cone(df, rv) if garch else None,
         "intraday": _intraday_state(symbol30),
         "price_bands": _price_bands(df, rv),
+        "coverage": _coverage(df, rv),
         "hist_series": {"date": [d.strftime("%Y-%m-%d") for d in hist_vol.index[::3]],
                         "vol": [round(float(v), 2) for v in hist_vol.values[::3]]},
     }
@@ -201,9 +248,16 @@ def _correlation(log=print):
             except Exception:
                 pass
     R = pd.DataFrame(rets).corr()
-    return {"labels": list(R.columns),
+    L = list(R.columns)
+    pairs = []
+    for i in range(len(L)):
+        for j in range(i + 1, len(L)):
+            pairs.append([L[i], L[j], round(float(R.iloc[i, j]), 2)])
+    pairs.sort(key=lambda x: -abs(x[2]))
+    return {"labels": L,
             "matrix": [[round(float(R.iloc[i, j]), 2) for j in range(R.shape[1])]
-                       for i in range(R.shape[0])]}
+                       for i in range(R.shape[0])],
+            "top": pairs[:8]}
 
 
 def compute_all(garch=False, log=print):
