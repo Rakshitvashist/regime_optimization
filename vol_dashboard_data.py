@@ -41,6 +41,10 @@ INSTRUMENTS = {
 # Instruments that have futures Open-Interest files (*FUT_OI.csv) -> OI symbol.
 OI_SYMBOL = {"NIFTY 50": "NIFTY", "BANK NIFTY": "BANKNIFTY"}
 
+# Instruments with a clean listed implied-vol index -> IV CSV. India VIX is the
+# 30-day implied vol of NIFTY options; BankNifty/others need their own option IV.
+IMPL_VOL = {"NIFTY 50": "INDIA_VIX.csv"}
+
 
 def _forecast_cone(rv):
     cone = []
@@ -312,6 +316,71 @@ def _tomorrow_behaviour(df, rv, targets=(75, 90)):
     }
 
 
+def _options_edge(name, forecast_cone):
+    """Vol Risk Premium: model's realized-vol FORECAST vs the listed IMPLIED vol
+    (India VIX). Forecast > implied => options cheap (buy vol); < => rich (sell).
+    Only for instruments with a clean IV index (NIFTY). Returns None otherwise."""
+    vpath = IMPL_VOL.get(name)
+    if not vpath or not os.path.exists(vpath):
+        return None
+    try:
+        vdf = drv._load_1min(vpath)
+        vcl = vdf["Close"].astype(float)
+        impl = float(vcl.iloc[-1])                         # current India VIX (ann %)
+        vix_pct = float((vcl <= impl).mean()) * 100        # where current VIX sits historically
+        c20 = next((e for e in forecast_cone if e["H"] == 20), None)
+        if not c20:
+            return None
+        fcast = float(c20["median"])                       # HAR forecast ann vol % (~20 trading d ~ VIX 30 cal d)
+        rel = (fcast - impl) / impl * 100.0
+        if rel > 5:
+            state, action = "cheap", "Options look UNDERPRICED — favor BUYING vol (long straddle/strangle)"
+        elif rel < -5:
+            state, action = "rich", "Options look OVERPRICED — favor SELLING premium (the variance-risk-premium edge)"
+        else:
+            state, action = "fair", "Roughly fair — small structural edge to selling premium (realized < implied ~60% of days)"
+        return {"forecast_vol": round(fcast, 1), "implied_vol": round(impl, 1),
+                "gap": round(fcast - impl, 2), "rel_pct": round(rel, 1),
+                "vix_pct": round(vix_pct, 0), "state": state, "action": action,
+                "asof": str(vcl.index[-1].date())}
+    except Exception as e:
+        return {"error": f"{type(e).__name__}: {e}"}
+
+
+def _what_changed(df, rv):
+    """Day-over-day changes a trader should notice (cheap, causal): regime flip,
+    vol jump, yesterday's move, where vol now sits vs its recent range."""
+    try:
+        reg = daily_regime(rv)
+        lc = _daily_log_close(df); r = lc.diff().reindex(rv.index)
+        sig = np.sqrt(rv)
+        items = []
+        # regime flip
+        if int(reg.iloc[-1]) != int(reg.iloc[-2]):
+            items.append({"label": "Regime flip", "tone": "flip",
+                          "detail": f"{RNAMES.get(int(reg.iloc[-2]),'?')} → {RNAMES.get(int(reg.iloc[-1]),'?')}"})
+        else:
+            items.append({"label": "Regime", "tone": "flat",
+                          "detail": f"still {RNAMES.get(int(reg.iloc[-1]),'?')}"})
+        # volatility day-over-day (in sigma terms)
+        schg = (float(sig.iloc[-1]) / float(sig.iloc[-2]) - 1.0) * 100.0
+        items.append({"label": "Volatility", "tone": "up" if schg > 0 else "down",
+                      "detail": f"{'+' if schg>=0 else ''}{schg:.0f}% vs yesterday"})
+        # latest daily move
+        mv = float(r.iloc[-1]) * 100.0
+        items.append({"label": "Last move", "tone": "flat",
+                      "detail": f"{'+' if mv>=0 else ''}{mv:.2f}% on the day"})
+        # vol position vs recent range (percentile over last year)
+        sw = sig.tail(250)
+        pct = float((sw <= sig.iloc[-1]).mean()) * 100.0
+        tone = "up" if pct >= 70 else ("down" if pct <= 30 else "flat")
+        items.append({"label": "Vol vs 1yr range", "tone": tone,
+                      "detail": f"{pct:.0f}th percentile " + ("(stretched high)" if pct>=70 else "(low/quiet)" if pct<=30 else "(mid)")})
+        return {"asof": str(rv.index[-1].date()), "items": items}
+    except Exception as e:
+        return {"error": f"{type(e).__name__}: {e}"}
+
+
 def _oi_block(df, oi_symbol):
     """Futures Open-Interest positioning block for the dashboard (or None)."""
     if not oi_symbol:
@@ -388,16 +457,19 @@ def _intraday_state(symbol30):
         return {"error": f"{type(e).__name__}: {e}"}
 
 
-def instrument_data(daily_path, symbol30, garch=False, oi_symbol=None):
+def instrument_data(daily_path, symbol30, garch=False, oi_symbol=None, name=None):
     df = drv._load_1min(daily_path)
     rv = daily_total_var(df, overnight=True)
     hist_vol = (np.sqrt(rv.rolling(20).mean() * drv.ANN) * 100).dropna()
     reg_cones, cur_daily_regime = _regime_cones(rv)
     calib = _band_calibration(df, rv)
+    fcast_cone = _forecast_cone(rv)
     return {
         "asof": str(rv.index[-1].date()),
         "current": round(float(hist_vol.iloc[-1]), 2),
-        "forecast_cone": _forecast_cone(rv),
+        "forecast_cone": fcast_cone,
+        "options": _options_edge(name, fcast_cone),
+        "changes": _what_changed(df, rv),
         "hist_cone": _hist_cone(rv),
         "regime_cones": reg_cones,
         "daily_regime": cur_daily_regime,
@@ -444,7 +516,7 @@ def compute_all(garch=False, log=print):
             continue
         try:
             data[name] = instrument_data(dpath, sym30, garch=garch,
-                                         oi_symbol=OI_SYMBOL.get(name))
+                                         oi_symbol=OI_SYMBOL.get(name), name=name)
             if log:
                 pb = data[name]["price_bands"]
                 log(f"  {name:12s} ok  RV {data[name]['current']}%  "

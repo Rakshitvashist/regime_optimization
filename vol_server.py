@@ -257,6 +257,37 @@ function TomorrowPanel({t}){ if(!t||t.error) return <div className="sub">{(t&&t.
       <td className="down">{fmt(b.low)}</td><td style={{color:'#6C63FF',fontWeight:700}}>{fmt(t.current_price)}</td>
       <td className="up">{fmt(b.high)}</td><td>{'±'+b.move_pct+'%'}</td></tr>)}</tbody></table></div>
  </div>;}
+function Overview({d,sel,onPick}){
+ const lc={calm:'#00D4AA',caution:'#FFB020',elevated:'#FF8C42',high:'#FF4757'};
+ const rows=Object.keys(d).map(n=>{const x=d[n],po=x.posture||{},tm=x.tomorrow||{};
+  return {n,score:po.score,level:po.level,regime:x.daily_regime,calm:tm.p_calm_tomorrow,move:tm.sigma_pct,opt:x.options};});
+ return <table><thead><tr><th className="l">market</th><th>risk (0=calm)</th><th>regime</th><th>calm tomorrow</th><th>1-day move</th><th>options</th></tr></thead>
+  <tbody>{rows.map(r=><tr key={r.n} onClick={()=>onPick(r.n)} style={{cursor:'pointer',background:r.n===sel?'rgba(108,99,255,.08)':'transparent'}}>
+    <td className="l"><b>{r.n}</b></td>
+    <td><span style={{fontFamily:'var(--mono)',fontWeight:700,color:lc[r.level]||'#8888AA'}}>{r.score!=null?r.score:'—'}</span> <span className="sub">{r.level||''}</span></td>
+    <td><Badge r={r.regime}/></td>
+    <td style={{color:r.calm>=78?'#00D4AA':r.calm>=60?'#FFB020':'#FF4757',fontWeight:600}}>{r.calm!=null?r.calm+'%':'—'}</td>
+    <td>{r.move!=null?'±'+r.move+'%':'—'}</td>
+    <td>{r.opt&&!r.opt.error?<span style={{color:r.opt.state==='cheap'?'#00D4AA':r.opt.state==='rich'?'#FF4757':'#FFB020',fontWeight:600}}>{r.opt.state}</span>:<span className="sub">—</span>}</td></tr>)}</tbody></table>;}
+function ChangesPanel({c}){ if(!c||c.error) return <div className="sub">{(c&&c.error)||'n/a'}</div>;
+ const sym={flip:'⇄',up:'▲',down:'▼',flat:'•'}; const col={flip:'#FFB020',up:'#FF4757',down:'#00D4AA',flat:'#8888AA'};
+ return <div className="chips" style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+  {c.items.map((it,i)=><div key={i} style={{flex:'1 1 180px',minWidth:170,background:'var(--surface2)',border:'1px solid var(--line)',borderLeft:'3px solid '+(col[it.tone]||'#8888AA'),borderRadius:10,padding:'10px 13px'}}>
+   <div className="sub" style={{fontSize:11,textTransform:'uppercase',letterSpacing:'.5px'}}>{it.label}</div>
+   <div style={{marginTop:4,fontWeight:600,color:col[it.tone]||'var(--text)'}}>{sym[it.tone]||'•'} {it.detail}</div></div>)}
+ </div>;}
+function OptionsEdge({o}){ if(!o) return null; if(o.error) return <div className="sub">{o.error}</div>;
+ const tone=o.state==='cheap'?'#00D4AA':o.state==='rich'?'#FF4757':'#FFB020';
+ return <div>
+  <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+   <StatBox k="Our vol forecast (HAR)" v={o.forecast_vol+'%'} d="expected realized vol"/>
+   <StatBox k="Implied vol (India VIX)" v={o.implied_vol+'%'} d={'fear gauge · '+o.vix_pct+'th pct of history'}/>
+   <StatBox k="Edge (forecast − implied)" v={(o.gap>=0?'+':'')+o.gap} d={(o.rel_pct>=0?'+':'')+o.rel_pct+'% vs implied'} tone={tone}/>
+  </div>
+  <div style={{marginTop:12,padding:'11px 14px',borderRadius:10,background:'rgba(108,99,255,.07)',borderLeft:'3px solid '+tone}}>
+   <div style={{fontWeight:800,color:tone,textTransform:'uppercase',fontSize:12,letterSpacing:'.6px'}}>{o.state} · options</div>
+   <div style={{marginTop:4,fontSize:14}}>{o.action}</div></div>
+ </div>;}
 function OISpark({oi}){const ref=useRef();
  useEffect(()=>{if(!oi||!oi.spark||!window.Plotly)return;
   window.Plotly.react(ref.current,[{x:oi.spark.t,y:oi.spark.oi,mode:'lines',line:{color:'#6C63FF',width:1.6},fill:'tozeroy',fillcolor:'rgba(108,99,255,0.08)'}],
@@ -334,7 +365,7 @@ function KPI({k,v,d,dir,i}){return <div className="kpi" style={{animationDelay:(
  <div className="k">{k}</div><div className="v">{v}</div>
  {d&&<div className={'d '+(dir||'flat')}>{dir==='up'?'▲':dir==='down'?'▼':'●'} {d}</div>}</div>;}
 
-const NAV=[['#top','Overview',IC.dash],['#posture','Risk Decision',IC.shield],['#state','Market Mood',IC.shield],['#tomorrow','Tomorrow',IC.chart],['#oi','Positioning',IC.layers],['#findings','What Works',IC.layers],['#cones','Price Swings',IC.chart],['#regime','Calm vs Wild',IC.layers],['#switch','Mood-Change Risk',IC.chart],['#price','Price Range',IC.tag],['#rel','Track Record',IC.shield],['#corr','What Moves Together',IC.grid]];
+const NAV=[['#top','Overview',IC.dash],['#overview','All Markets',IC.grid],['#changes','What Changed',IC.chart],['#posture','Risk Decision',IC.shield],['#state','Market Mood',IC.shield],['#tomorrow','Tomorrow',IC.chart],['#options','Options Edge',IC.tag],['#oi','Positioning',IC.layers],['#findings','What Works',IC.layers],['#cones','Price Swings',IC.chart],['#regime','Calm vs Wild',IC.layers],['#switch','Mood-Change Risk',IC.chart],['#price','Price Range',IC.tag],['#rel','Track Record',IC.shield],['#corr','What Moves Together',IC.grid]];
 const FINDINGS=[
  ['Direction (intraday)','GBM / LSTM','AUC ~0.53 — efficient','b-explosive','near-efficient'],
  ['Movement / spike (30m)','GBM + HMM gate','AUC ~0.65 · top-5% → 69% vs 42%','b-normal','modest edge'],
@@ -379,6 +410,14 @@ function App(){
 
     <MacroBanner macro={macro}/>
 
+    <div className="panel" id="overview"><h3>All Markets — At a Glance <span className="tag">{Object.keys(d).length} markets · click a row</span></h3>
+     <Plain>Where to look first. Every market's risk score (0 = calm), current regime, tomorrow's calm-odds and expected move, and whether its options are cheap/rich — in one place. <b>Click any row</b> to open that market.</Plain>
+     <Overview d={d} sel={sel} onPick={setSel}/></div>
+
+    {x.changes&&!x.changes.error&&<div className="panel" id="changes"><h3>What Changed Today <span className="tag">{sel} · vs yesterday</span></h3>
+     <Plain>The few things that actually moved since yesterday — so you don't re-read the whole board every morning. Regime flips, volatility jumps, the day's move, and where vol now sits in its yearly range.</Plain>
+     <ChangesPanel c={x.changes}/></div>}
+
     <div className="panel" id="posture"><h3>Risk Decision Score <span className="tag">{sel} · multi-factor</span></h3>
      <Plain>The one-number summary: it blends every signal on this dashboard — vol forecast, regime, mood-change risk, macro, fat-tails — into a single 0–100 "how much risk is ahead" score, with a clear action. <b>It does not call up/down</b> (that's a coin-flip); it calls calm-vs-stormy, which is predictable. "Accuracy" = how well it spotted high-vol periods in the past; "Edge vs persistence" is the honest bit — how much the extra factors add beyond just "vol is already high."</Plain>
      <RiskPosture p={x.posture} bandPct={rangePct}/></div>
@@ -392,6 +431,11 @@ function App(){
      <Plain>Honest next-day forecast. We <b>don't</b> predict up vs down — that's a coin-flip nobody beats. We predict <b>how the market behaves</b>: how big the swing will be, whether it stays calm, and the price range it'll most likely hold in. The <b style={{color:'#00D4AA'}}>75% row</b> is tuned so tomorrow's close lands inside it 3 times out of 4 — measured on this market's real history, not assumed.</Plain>
      <TomorrowPanel t={x.tomorrow}/>
      <p className="sub" style={{marginTop:10}}>Pure statistics on daily history — exploits volatility clustering (calm follows calm), which is genuinely predictable. Causal: σ = √(today's variance); the band multiplier is the empirical quantile of past |move|/σ. No direction bet, no look-ahead.</p></div>}
+
+    {x.options&&<div className="panel" id="options"><h3>Options Edge — Cheap or Rich? <span className="tag">{sel} · vol risk premium</span></h3>
+     <Plain>The one place this turns into a trade. We compare <b>our volatility forecast</b> (how much the market will actually move) against <b>implied volatility</b> (what option prices are charging — India VIX). Forecast higher → options are <b style={{color:'#00D4AA'}}>cheap, buy them</b>; forecast lower → options are <b style={{color:'#FF4757'}}>rich, sell them</b>. This monetizes the volatility edge — no up/down call needed.</Plain>
+     <OptionsEdge o={x.options}/>
+     <p className="sub" style={{marginTop:10}}>HAR realized-vol forecast (~20 trading days) vs India VIX (~30 calendar days). India VIX is NIFTY-only; BankNifty/commodities need their own listed option IV. Structural note: realized lands below implied ~60% of days (the variance risk premium), a mild base edge to selling.</p></div>}
 
     {x.oi&&<div className="panel" id="oi"><h3>Futures Positioning — Open Interest <span className="tag">{sel} · who's in the trade</span></h3>
      <Plain>Open interest is how many futures contracts are live. Read alongside price it shows whether a move is backed by <b>fresh money</b> (strong) or just position-closing (weak): <b style={{color:'#00D4AA'}}>long buildup</b> = new buyers, <b style={{color:'#FF4757'}}>short buildup</b> = new sellers, <b>short covering</b> = a rally running out of fuel. Recent-data signal (~1 month of futures OI).</Plain>
