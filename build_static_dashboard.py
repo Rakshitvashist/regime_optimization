@@ -27,13 +27,16 @@ def main():
     inject = "<script>window.__PRELOAD__ = " + json.dumps(payload) + ";</script>\n" + tag
     html = vol_server.PAGE.replace(tag, inject, 1)
     os.makedirs("docs", exist_ok=True)
-    with open("docs/index.html", "w", encoding="utf-8") as f:
-        f.write(html)
-    # .nojekyll so GitHub Pages serves the file as-is
-    open(os.path.join("docs", ".nojekyll"), "w").close()
-    kb = os.path.getsize("docs/index.html") / 1024
-    print(f"\nWrote docs/index.html ({kb:.0f} KB, {len(data['instruments'])} instruments).")
-    print("Commit docs/ + push, then enable GitHub Pages: Settings > Pages > Source: main /docs")
+    # Write to BOTH docs/ and repo root so GitHub Pages works whether its source
+    # is "main /docs" OR "main /(root)" (a root index.html beats README rendering).
+    for path in ("docs/index.html", "index.html"):
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(html)
+    open("docs/.nojekyll", "w").close()
+    open(".nojekyll", "w").close()
+    kb = os.path.getsize("index.html") / 1024
+    print(f"\nWrote index.html + docs/index.html ({kb:.0f} KB, {len(data['instruments'])} instruments).")
+    print("Commit + push. GitHub Pages works from main /(root) OR /docs.")
 
 
 if __name__ == "__main__":
