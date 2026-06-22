@@ -288,6 +288,41 @@ function OptionsEdge({o}){ if(!o) return null; if(o.error) return <div className
    <div style={{fontWeight:800,color:tone,textTransform:'uppercase',fontSize:12,letterSpacing:'.6px'}}>{o.state} · options</div>
    <div style={{marginTop:4,fontSize:14}}>{o.action}</div></div>
  </div>;}
+function Field({label,val,set,step,suffix}){return <div style={{flex:'1 1 130px',minWidth:120}}>
+ <div className="sub" style={{fontSize:11,textTransform:'uppercase',letterSpacing:'.5px',marginBottom:4}}>{label}</div>
+ <input type="number" value={val} step={step||1} min={0} onChange={e=>set(Math.max(0,parseFloat(e.target.value)||0))}
+  style={{width:'100%',background:'var(--surface2)',color:'var(--text)',border:'1px solid var(--line)',borderRadius:9,padding:'8px 10px',fontFamily:'var(--mono)',fontSize:14}}/>
+ {suffix&&<div className="sub" style={{fontSize:10,marginTop:2}}>{suffix}</div>}</div>;}
+function PositionSizer({t,regime}){ const [cap,setCap]=useState(100000),[risk,setRisk]=useState(1),[mult,setMult]=useState(1.5),[lot,setLot]=useState(1);
+ if(!t||t.sigma_pct==null) return <div className="sub">n/a</div>;
+ const price=t.current_price,sig=t.sigma_pct;
+ const stopPts=mult*(sig/100)*price, stopPct=mult*sig;
+ const maxRisk=cap*risk/100;
+ const qty=stopPts>0?Math.floor(maxRisk/stopPts):0;
+ const lots=lot>1?Math.floor(qty/lot):null;
+ const exposure=qty*price, lev=cap>0?exposure/cap:0;
+ const wild=regime==='explosive';
+ const money=n=>'₹'+Math.round(n).toLocaleString('en-IN');
+ const out=(k,v,d,tone)=><div style={{flex:'1 1 140px',minWidth:128,background:'var(--surface2)',border:'1px solid var(--line)',borderRadius:11,padding:'11px 13px'}}>
+   <div className="sub" style={{fontSize:11,textTransform:'uppercase',letterSpacing:'.5px'}}>{k}</div>
+   <div style={{fontFamily:'var(--mono)',fontSize:18,fontWeight:700,marginTop:5,color:tone||'var(--text)'}}>{v}</div>
+   {d&&<div className="sub" style={{marginTop:2}}>{d}</div>}</div>;
+ return <div>
+  <div style={{display:'flex',gap:12,flexWrap:'wrap',marginBottom:14}}>
+   <Field label="Capital (₹)" val={cap} set={setCap} step={10000}/>
+   <Field label="Risk per trade %" val={risk} set={setRisk} step={0.25}/>
+   <Field label="Stop width (× daily move)" val={mult} set={setMult} step={0.25} suffix={'1-day move ≈ ±'+sig+'%'}/>
+   <Field label="Lot size" val={lot} set={setLot} step={1} suffix="1=shares · 75=NIFTY F&O…"/>
+  </div>
+  <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+   {out('Stop distance','±'+stopPct.toFixed(2)+'%',Math.round(stopPts).toLocaleString('en-IN')+' pts',wild?'#FFB020':undefined)}
+   {out('Position size',qty.toLocaleString('en-IN')+(lots!=null?' · '+lots+' lots':''),'units to trade','#00D4AA')}
+   {out('Exposure',money(exposure),lev.toFixed(1)+'× capital')}
+   {out('Max loss if stopped',money(maxRisk),'= '+risk+'% of capital','#FF4757')}
+   {out('Target (1:2 R:R)',Math.round(stopPts*2).toLocaleString('en-IN')+' pts','for 2× your risk')}
+  </div>
+  {wild&&<div className="sub" style={{marginTop:10,color:'#FFB020'}}>⚠ {regime} regime — swings are large now; consider a wider stop (2–2.5×) and smaller size.</div>}
+ </div>;}
 function OISpark({oi}){const ref=useRef();
  useEffect(()=>{if(!oi||!oi.spark||!window.Plotly)return;
   window.Plotly.react(ref.current,[{x:oi.spark.t,y:oi.spark.oi,mode:'lines',line:{color:'#6C63FF',width:1.6},fill:'tozeroy',fillcolor:'rgba(108,99,255,0.08)'}],
@@ -365,7 +400,7 @@ function KPI({k,v,d,dir,i}){return <div className="kpi" style={{animationDelay:(
  <div className="k">{k}</div><div className="v">{v}</div>
  {d&&<div className={'d '+(dir||'flat')}>{dir==='up'?'▲':dir==='down'?'▼':'●'} {d}</div>}</div>;}
 
-const NAV=[['#top','Overview',IC.dash],['#overview','All Markets',IC.grid],['#changes','What Changed',IC.chart],['#posture','Risk Decision',IC.shield],['#state','Market Mood',IC.shield],['#tomorrow','Tomorrow',IC.chart],['#options','Options Edge',IC.tag],['#oi','Positioning',IC.layers],['#findings','What Works',IC.layers],['#cones','Price Swings',IC.chart],['#regime','Calm vs Wild',IC.layers],['#switch','Mood-Change Risk',IC.chart],['#price','Price Range',IC.tag],['#rel','Track Record',IC.shield],['#corr','What Moves Together',IC.grid]];
+const NAV=[['#top','Overview',IC.dash],['#overview','All Markets',IC.grid],['#changes','What Changed',IC.chart],['#posture','Risk Decision',IC.shield],['#state','Market Mood',IC.shield],['#tomorrow','Tomorrow',IC.chart],['#options','Options Edge',IC.tag],['#sizer','Position Size',IC.tag],['#oi','Positioning',IC.layers],['#findings','What Works',IC.layers],['#cones','Price Swings',IC.chart],['#regime','Calm vs Wild',IC.layers],['#switch','Mood-Change Risk',IC.chart],['#price','Price Range',IC.tag],['#rel','Track Record',IC.shield],['#corr','What Moves Together',IC.grid]];
 const FINDINGS=[
  ['Direction (intraday)','GBM / LSTM','AUC ~0.53 — efficient','b-explosive','near-efficient'],
  ['Movement / spike (30m)','GBM + HMM gate','AUC ~0.65 · top-5% → 69% vs 42%','b-normal','modest edge'],
@@ -436,6 +471,11 @@ function App(){
      <Plain>The one place this turns into a trade. We compare <b>our volatility forecast</b> (how much the market will actually move) against <b>implied volatility</b> (what option prices are charging — India VIX). Forecast higher → options are <b style={{color:'#00D4AA'}}>cheap, buy them</b>; forecast lower → options are <b style={{color:'#FF4757'}}>rich, sell them</b>. This monetizes the volatility edge — no up/down call needed.</Plain>
      <OptionsEdge o={x.options}/>
      <p className="sub" style={{marginTop:10}}>HAR realized-vol forecast (~20 trading days) vs India VIX (~30 calendar days). India VIX is NIFTY-only; BankNifty/commodities need their own listed option IV. Structural note: realized lands below implied ~60% of days (the variance risk premium), a mild base edge to selling.</p></div>}
+
+    {x.tomorrow&&<div className="panel" id="sizer"><h3>Position Size &amp; Stops <span className="tag">{sel} · risk calculator</span></h3>
+     <Plain>Turn the volatility forecast into an actual trade plan. Enter your capital and how much you're willing to risk — it sets a <b>stop distance</b> from the market's real daily move, and the <b>position size</b> so a stop-out costs exactly your chosen risk, never more. Vol-based, so stops auto-widen when the market turns wild.</Plain>
+     <PositionSizer t={x.tomorrow} regime={x.daily_regime}/>
+     <p className="sub" style={{marginTop:10}}>Stop = (your multiple) × today's 1-day move (σ). Size = max-₹-risk ÷ stop distance, so worst-case loss = capital × risk%. Educational sizing tool, not financial advice — set lot size for F&amp;O.</p></div>}
 
     {x.oi&&<div className="panel" id="oi"><h3>Futures Positioning — Open Interest <span className="tag">{sel} · who's in the trade</span></h3>
      <Plain>Open interest is how many futures contracts are live. Read alongside price it shows whether a move is backed by <b>fresh money</b> (strong) or just position-closing (weak): <b style={{color:'#00D4AA'}}>long buildup</b> = new buyers, <b style={{color:'#FF4757'}}>short buildup</b> = new sellers, <b>short covering</b> = a rally running out of fuel. Recent-data signal (~1 month of futures OI).</Plain>
