@@ -263,11 +263,12 @@ function SwitchGauge({sw,regime}){ if(!sw||sw.error) return <div className="sub"
    <StatBox k="Change-point (BOCPD)" v={(sw.bocpd*100).toFixed(0)+'%'} d="distribution shift alarm" tone={sw.bocpd>0.3?'var(--warn)':undefined}/>
    <StatBox k="Now in regime" v={<Badge r={regime}/>} d={'as of '+sw.asof}/>
   </div></div>;}
+function Plain({children}){return <div style={{background:'rgba(108,99,255,.07)',borderLeft:'3px solid #6C63FF',borderRadius:'0 8px 8px 0',padding:'9px 13px',margin:'10px 0 4px',fontSize:13.5,lineHeight:1.55,color:'#C2C2DA'}}><b style={{color:'#8B83FF'}}>In plain words — </b>{children}</div>;}
 function KPI({k,v,d,dir,i}){return <div className="kpi" style={{animationDelay:(i*80)+'ms'}}>
  <div className="k">{k}</div><div className="v">{v}</div>
  {d&&<div className={'d '+(dir||'flat')}>{dir==='up'?'▲':dir==='down'?'▼':'●'} {d}</div>}</div>;}
 
-const NAV=[['#top','Overview',IC.dash],['#state','Market X-ray',IC.shield],['#findings','Findings',IC.layers],['#cones','Vol Cones',IC.chart],['#regime','Regimes',IC.layers],['#switch','Switch Risk',IC.chart],['#price','Price Bands',IC.tag],['#rel','Reliability',IC.shield],['#corr','Correlation',IC.grid]];
+const NAV=[['#top','Overview',IC.dash],['#state','Market Mood',IC.shield],['#findings','What Works',IC.layers],['#cones','Price Swings',IC.chart],['#regime','Calm vs Wild',IC.layers],['#switch','Mood-Change Risk',IC.chart],['#price','Price Range',IC.tag],['#rel','Track Record',IC.shield],['#corr','What Moves Together',IC.grid]];
 const FINDINGS=[
  ['Direction (intraday)','GBM / LSTM','AUC ~0.53 — efficient','b-explosive','near-efficient'],
  ['Movement / spike (30m)','GBM + HMM gate','AUC ~0.65 · top-5% → 69% vs 42%','b-normal','modest edge'],
@@ -292,7 +293,7 @@ function App(){
   </aside>
   <div className="main">
    <header className="header">
-    <div><h1 id="top">Volatility Intelligence</h1><div className="sub">forecast · regimes · cross-asset · {Object.keys(d).length} instruments</div></div>
+    <div><h1 id="top">Volatility Intelligence</h1><div className="sub">how much prices swing · the market's mood · what moves together · {Object.keys(d).length} markets</div></div>
     <div className="hgroup">
      <div className="live"><span className="pulse"></span>{window.__PRELOAD__?'snapshot':'live'}</div>
      <div className="iconbtn bell">{IC.bell}</div>
@@ -302,30 +303,34 @@ function App(){
    <div className="tabs">{Object.keys(d).map(n=><div key={n} className={'tab'+(n===sel?' on':'')} onClick={()=>setSel(n)}>{n}</div>)}</div>
    <div className="content">
     <div className="kpis">
-     <KPI i={0} k={"Current RV · "+sel} v={fmt(x.current)+'%'} d={"as of "+x.asof} dir="flat"/>
-     <KPI i={1} k="Forecast 20d" v={fmt(c20.median)+'%'} d={(expand>=0?'+':'')+fmt(expand)+'% vs now · '+(expand>=0?'expanding':'contracting')} dir={expand>=0?'down':'up'}/>
-     <KPI i={2} k="Daily Regime" v={<Badge r={x.daily_regime}/>} d={"R² "+fmt(c20.r2)} dir="flat"/>
-     <KPI i={3} k="Price-in-Range 2σ" v={fmt(x.coverage['20']['raw']['2']*100)+'%'} d={'1σ '+fmt(x.coverage['20']['raw']['1']*100)+'% · 20d backtest'} dir={x.coverage['20']['raw']['2']>=0.9?'up':'down'}/>
+     <KPI i={0} k={"Swings now · "+sel} v={fmt(x.current)+'%'} d={"how jumpy today · "+x.asof} dir="flat"/>
+     <KPI i={1} k="Swings expected (next month)" v={fmt(c20.median)+'%'} d={(expand>=0?'+':'')+fmt(expand)+'% vs now · '+(expand>=0?'getting wilder':'calming down')} dir={expand>=0?'down':'up'}/>
+     <KPI i={2} k="Market mood now" v={<Badge r={x.daily_regime}/>} d={"forecast fit R² "+fmt(c20.r2)} dir="flat"/>
+     <KPI i={3} k="Stayed in range (past)" v={fmt(x.coverage['20']['raw']['2']*100)+'%'} d={'inside wide band · 1σ '+fmt(x.coverage['20']['raw']['1']*100)+'% · backtested'} dir={x.coverage['20']['raw']['2']>=0.9?'up':'down'}/>
     </div>
 
     <MacroBanner macro={macro}/>
 
-    <div className="panel" id="state"><h3>Market State — X-ray <span className="tag">{sel} · diagnostic</span></h3>
+    <div className="panel" id="state"><h3>Market Mood — Health Check <span className="tag">{sel} · diagnostic</span></h3>
+     <Plain>Is the market calm or stormy right now? Is the price trending in one direction or just bouncing around — and how bad could a rough day get? This is the weather report, not a buy/sell call.</Plain>
      <StatePanel s={x.state}/>
      <p className="sub" style={{marginTop:10}}>Diagnostics describe the regime (Hurst = trend vs mean-revert), tail risk (excess-kurtosis + EVT tail index), skew, and downside (VaR/CVaR, drawdown). State, not alpha.</p></div>
 
-    <div className="panel" id="findings"><h3>Model &amp; Research Findings <span className="tag">walk-forward · no look-ahead</span></h3>
+    <div className="panel" id="findings"><h3>What We Tested — and What Actually Works <span className="tag">honest · backtested</span></h3>
+     <Plain>What we tried, and what held up. Guessing tomorrow's up/down = basically a coin-flip (doesn't work). Predicting <i>how much</i> the price will swing = this works and is what the rest of the dashboard is built on.</Plain>
      <table><thead><tr><th className="l">signal</th><th className="l">method</th><th className="l">result</th><th className="l">verdict</th></tr></thead>
       <tbody>{FINDINGS.map((f,i)=><tr key={i}><td className="l">{f[0]}</td><td className="l sub">{f[1]}</td><td className="l">{f[2]}</td>
         <td className="l"><span className={'badge '+f[3]}>{f[4]}</span></td></tr>)}</tbody></table>
      <p className="sub" style={{marginTop:8}}>Honest result: intraday direction is a mirage; volatility forecasting is the real, defensible signal.</p></div>
 
     <div className="row2">
-     <div className="panel" id="cones"><h3>Forecast Cone <span className="tag">1σ · 1.5σ · 2σ</span></h3><Cone inst={x}/></div>
-     <div className="panel"><h3>Live Intraday <span className="tag">30m HMM</span></h3>
+     <div className="panel" id="cones"><h3>Expected Price Swing <span className="tag">near · likely · extreme</span></h3>
+      <Plain>How far the price could realistically move from here, going forward. A wider cone means bigger moves are expected ahead.</Plain><Cone inst={x}/></div>
+     <div className="panel"><h3>Right Now (Today) <span className="tag">live · 30-min</span></h3>
+      <Plain>Today, in real time: how close is a sudden sharp move (a "spike"), and which way it's leaning.</Plain>
       {intr.error||!intr.regime? <div className="sub">no intraday feed for this instrument</div>:
-      <div><div style={{margin:'4px 0 14px'}}>regime <Badge r={intr.regime}/></div>
-       <div className="sub">spike-imminence</div><div className="gauge"><div style={{width:(intr.spike_pressure||0)+'%'}}/></div>
+      <div><div style={{margin:'4px 0 14px'}}>mood now <Badge r={intr.regime}/></div>
+       <div className="sub">chance of a sharp move soon</div><div className="gauge"><div style={{width:(intr.spike_pressure||0)+'%'}}/></div>
        <div style={{fontFamily:'var(--mono)',fontSize:24,fontWeight:700,marginTop:8}}>{intr.spike_pressure}<span className="sub" style={{fontSize:13}}>/100</span></div>
        <div style={{marginTop:10}} className="sub">bias: <b style={{color:intr.spike_dir==='up'?'#00D4AA':intr.spike_dir==='down'?'#FF4757':'#8888AA'}}>{intr.spike_dir}</b></div>
        <div className="sub" style={{marginTop:8}}>{intr.asof}</div></div>}
@@ -333,32 +338,39 @@ function App(){
     </div>
 
     <div className="row2" id="regime">
-     <div className="panel"><h3>σ Bands by Horizon <span className="tag">ann vol %</span></h3>
+     <div className="panel"><h3>Expected Swing by Time-Frame <span className="tag">yearly %</span></h3>
+      <Plain>Expected swing size over different windows — a few days, a week, a month out. Bigger number = bigger expected moves. The ±1σ / ±2σ columns are the likely vs extreme range.</Plain>
       <table><thead><tr><th className="l">H</th><th>-2σ</th><th>-1σ</th><th>median</th><th>+1σ</th><th>+2σ</th><th>R²</th></tr></thead>
        <tbody>{x.forecast_cone.map(r=><tr key={r.H}><td className="l">{r.H}d</td><td className="down">{fmt(r.dn2)}</td><td>{fmt(r.dn1)}</td>
          <td style={{color:'#6C63FF',fontWeight:700}}>{fmt(r.median)}</td><td>{fmt(r.up1)}</td><td className="up">{fmt(r.up2)}</td><td>{fmt(r.r2)}</td></tr>)}</tbody></table></div>
-     <div className="panel"><h3>Regime Cones <span className="tag">20d</span></h3>
+     <div className="panel"><h3>Range When Calm vs Wild <span className="tag">20d</span></h3>
+      <Plain>If the market stays calm vs turns wild, here's the price range to expect. The "explosive" row is much wider — same market, very different risk.</Plain>
       <table><thead><tr><th className="l">regime</th><th>10%</th><th>median</th><th>90%</th><th>n</th></tr></thead>
        <tbody>{(x.regime_cones||[]).map(r=><tr key={r.regime}><td className="l"><Badge r={r.regime}/></td><td>{fmt(r.lo)}</td>
          <td style={{fontWeight:700}}>{fmt(r.median)}</td><td>{fmt(r.hi)}</td><td>{r.n}</td></tr>)}</tbody></table></div>
     </div>
 
-    <div className="panel" id="switch"><h3>Regime-Switch Early-Warning <span className="tag">{sel} · P(switch ≤10d)</span></h3>
+    <div className="panel" id="switch"><h3>Mood-Change Early Warning <span className="tag">{sel} · next 10 days</span></h3>
+     <Plain>The chance the market's mood flips (calm ↔ wild) within the next 10 days. A high % means expect a change soon. "Model AUC" is how often this warning was right in the past — closer to 1.0 = more trustworthy (0.5 would be a coin-flip). "Change-point" lights up the moment behaviour suddenly shifts.</Plain>
      <SwitchGauge sw={x.switch} regime={x.daily_regime}/>
-     <p className="sub" style={{marginTop:12}}>Predicts a regime change in the next 10 days (walk-forward AUC ~0.65–0.67, driven by vol-of-vol). BOCPD = live change-point alarm. This is the predictable part of regime — switches, not the exact next state.</p></div>
+     <p className="sub" style={{marginTop:12}}>Technical: P(regime switch ≤10d), HistGBM on vol-of-vol features, walk-forward AUC ~0.65–0.67. BOCPD = Bayesian change-point alarm. Predicts switches, not the exact next state.</p></div>
 
-    <div className="panel" id="price"><h3>Expected Price Range <span className="tag">{fmt(x.price_bands&&x.price_bands.current_price)}</span></h3>
+    <div className="panel" id="price"><h3>Where the Price Will Probably Stay <span className="tag">now: {fmt(x.price_bands&&x.price_bands.current_price)}</span></h3>
+     <Plain>The price levels it'll most likely stay between. Roughly 2 days out of 3 it lands inside the 1σ band, and about 19 days out of 20 inside the 2σ band. Left table ignores trend; right table tilts the range in the direction the market's been drifting.</Plain>
      <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
       <BandTable bands={x.price_bands.bands} price={x.price_bands.current_price} title="No-drift — pure volatility band"/>
       <BandTable bands={x.price_bands.bands_drift} price={x.price_bands.current_price} title={'Drift-adjusted — trend '+fmt(dr)+'%/day'}/></div></div>
 
     <div className="row2">
-     <div className="panel" id="rel"><h3>Price-in-Range — Band Hit-Rate <span className="tag">{sel}</span></h3><Reliability cov={x.coverage}/>
-      <p className="sub" style={{marginTop:8}}>How often the price actually landed inside the band (backtested). Near 68/87/95% = calibrated; drift fixes trending names.</p></div>
-     <div className="panel"><h3>Historical Realized Vol <span className="tag">20d</span></h3><Hist inst={x}/></div>
+     <div className="panel" id="rel"><h3>Track Record — Were We Right? <span className="tag">{sel} · hit ratio</span></h3>
+      <Plain>The report card. Out of every past day, how often the real price actually stayed inside the band we predicted. Close to 68 / 87 / 95% means the bands are honest and trustworthy. This IS the hit ratio.</Plain><Reliability cov={x.coverage}/>
+      <p className="sub" style={{marginTop:8}}>Backtested coverage. Near 68/87/95% = well-calibrated; drift-adjustment fixes strongly-trending names.</p></div>
+     <div className="panel"><h3>How Jumpy It's Been <span className="tag">recent</span></h3>
+      <Plain>The price's actual jumpiness recently, plotted day by day — the history behind the forecasts above.</Plain><Hist inst={x}/></div>
     </div>
 
-    <div className="panel" id="corr"><h3>Cross-Asset Correlation <span className="tag">daily returns</span></h3><Corr corr={corr}/>
+    <div className="panel" id="corr"><h3>What Moves Together <span className="tag">daily</span></h3>
+     <Plain>Which markets tend to move together (green) and which move opposite (red). Handy so you don't accidentally place the same bet twice — the equities all move together; Gold &amp; Silver track each other; commodities barely follow stocks.</Plain><Corr corr={corr}/>
      <p className="sub" style={{marginTop:8}}>Green = move together · red = inverse. Equity block clusters; Gold–Silver pair; commodities ≈ uncorrelated to equities.</p></div>
 
     <p className="sub" style={{marginTop:18}}>HAR-RV (Corsi 2009) on daily realized variance from 1-min bars · overnight-adjusted · updated {ts?new Date(ts*1000).toLocaleString():'snapshot'}. Research only.</p>
