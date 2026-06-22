@@ -311,6 +311,7 @@ function RiskPosture({p,bandPct}){ if(!p||p.error) return <div className="sub">{
     <div style={{fontFamily:'var(--mono)',fontSize:46,fontWeight:800,color:tone,lineHeight:1}}>{p.score}<span className="sub" style={{fontSize:15}}>/100</span></div>
     <div style={{textTransform:'uppercase',letterSpacing:'1px',fontWeight:800,color:tone,marginTop:4,fontSize:15}}>{p.level}</div>
     <div className="gauge" style={{marginTop:10,width:150}}><div style={{width:p.score+'%',background:tone}}/></div>
+    <div className="sub" style={{marginTop:7,fontSize:11,lineHeight:1.4}}><b style={{color:'#00D4AA'}}>0 = calm</b> · <b style={{color:'#FF4757'}}>100 = stormy</b><br/>lower is calmer — this is a risk gauge, not up/down</div>
    </div>
    <div style={{flex:1,minWidth:240}}>
     <div className="sub" style={{marginBottom:5}}>What to do</div>
