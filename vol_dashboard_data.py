@@ -188,6 +188,41 @@ def _daily_ret(path):
     return s
 
 
+def _market_state(df):
+    try:
+        from market_state import market_state
+        return market_state(df)
+    except Exception as e:
+        return {"error": f"{type(e).__name__}: {e}"}
+
+
+def _switch(daily_path):
+    try:
+        from regime_switch import switch_now
+        return switch_now(daily_path)
+    except Exception as e:
+        return {"error": f"{type(e).__name__}: {e}"}
+
+
+def _macro():
+    """Top-level cross-asset risk-on/off regime (Nifty+Crude+Gold)."""
+    try:
+        from macro_regime import compute as macro_compute, NAMES
+        F = macro_compute()
+        cur = int(F["regime"].iloc[-1])
+        rows = []
+        for k in range(3):
+            m = F["regime"] == k
+            if m.any():
+                rows.append({"regime": NAMES[k], "share": round(float(m.mean()), 3),
+                             "nifty": round(float(F.nifty[m].mean()) * 100, 3),
+                             "crude": round(float(F.crude[m].mean()) * 100, 3),
+                             "gold": round(float(F.gold[m].mean()) * 100, 3)})
+        return {"current": NAMES[cur], "asof": str(F.index[-1].date()), "rows": rows}
+    except Exception as e:
+        return {"error": f"{type(e).__name__}: {e}"}
+
+
 def _intraday_state(symbol30):
     if not symbol30:
         return None
@@ -233,6 +268,8 @@ def instrument_data(daily_path, symbol30, garch=False):
         "intraday": _intraday_state(symbol30),
         "price_bands": _price_bands(df, rv),
         "coverage": _coverage(df, rv),
+        "state": _market_state(df),
+        "switch": _switch(daily_path),
         "hist_series": {"date": [d.strftime("%Y-%m-%d") for d in hist_vol.index[::3]],
                         "vol": [round(float(v), 2) for v in hist_vol.values[::3]]},
     }
@@ -276,9 +313,11 @@ def compute_all(garch=False, log=print):
             if log:
                 log(f"  {name:12s} FAILED: {type(e).__name__}: {e}")
     corr = _correlation(log)
+    macro = _macro()
     if log:
-        log(f"  correlation matrix: {len(corr['labels'])} instruments")
-    return {"instruments": data, "correlation": corr}
+        log(f"  correlation matrix: {len(corr['labels'])} instruments | "
+            f"macro regime: {macro.get('current', macro.get('error'))}")
+    return {"instruments": data, "correlation": corr, "macro": macro}
 
 
 if __name__ == "__main__":

@@ -23,9 +23,9 @@ def main():
     print("Computing snapshot (first run ~1-2 min)...", flush=True)
     data = vdd.compute_all(garch=a.garch, log=lambda m: print(m, flush=True))
     payload = {"data": data, "ts": int(time.time())}
-    inject = ("<script>window.__PRELOAD__ = " + json.dumps(payload) + ";</script>\n"
-              '<script type="text/babel">')
-    html = vol_server.PAGE.replace('<script type="text/babel">', inject, 1)
+    tag = '<script type="text/plain" id="appsrc">'
+    inject = "<script>window.__PRELOAD__ = " + json.dumps(payload) + ";</script>\n" + tag
+    html = vol_server.PAGE.replace(tag, inject, 1)
     os.makedirs("docs", exist_ok=True)
     with open("docs/index.html", "w", encoding="utf-8") as f:
         f.write(html)
