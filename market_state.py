@@ -31,7 +31,10 @@ def _hurst(x, max_lag=60):
     return float(np.polyfit(np.log(lg[m]), np.log(tau[m]), 1)[0])
 
 
-def market_state(df):
+def market_state(df, symbol=None, data_dir="."):
+    """Diagnostic snapshot. If `symbol` (e.g. 'NIFTY'/'BANKNIFTY') is given and its
+    *_OI.csv files exist in `data_dir`, an Open-Interest positioning block is merged
+    in (oi_buildup, oi_net_bias, rollover, ...). OI failures are non-fatal."""
     cl = df["Close"].astype(float).groupby(drv._day_index(df.index)).last()
     lc = np.log(cl); ret = lc.diff().dropna()
     r = ret.to_numpy()
@@ -44,7 +47,7 @@ def market_state(df):
     dd = (cl / cl.cummax() - 1.0)
     trend = "trending" if H > 0.55 else ("mean-revert" if H < 0.45 else "random walk")
     tail = "fat-tailed" if ku > 1.0 else "near-normal"
-    return {
+    out = {
         "hurst": round(H, 3), "trend": trend,
         "skew": round(sk, 2), "kurtosis": round(ku, 2), "tail": tail,
         "tail_index": round(hill, 2),
@@ -52,3 +55,12 @@ def market_state(df):
         "max_dd": round(float(dd.min()) * 100, 1),
         "cur_dd": round(float(dd.iloc[-1]) * 100, 1),
     }
+    if symbol:
+        try:
+            import oi_features as oif
+            agg = oif.aggregate_oi(symbol, data_dir)
+            out.update(oif.oi_state(df["Close"].astype(float), agg["total_oi"]))
+            out["rollover"] = round(float(agg["rollover"].iloc[-1]) * 100, 1)
+        except Exception as e:  # missing/short OI is non-fatal context
+            out["oi_note"] = f"OI unavailable: {e}"
+    return out

@@ -220,10 +220,12 @@ function BandTable({bands,price,title}){return <div style={{flex:1,minWidth:300}
  <table><thead><tr><th className="l">H</th><th>-2σ</th><th>-1σ</th><th>price</th><th>+1σ</th><th>+2σ</th></tr></thead>
   <tbody>{bands.map(b=><tr key={b.H}><td className="l">{b.H}d</td><td className="down">{fmt(b.dn2)}</td><td>{fmt(b.dn1)}</td>
     <td style={{color:'#6C63FF',fontWeight:700}}>{fmt(price)}</td><td>{fmt(b.up1)}</td><td className="up">{fmt(b.up2)}</td></tr>)}</tbody></table></div>;}
-function Reliability({cov}){if(!cov)return null;const rows=[];Object.keys(cov).forEach(H=>['raw','drift'].forEach(m=>rows.push([H,m,cov[H][m]])));
+function Reliability({cov}){if(!cov)return null;const rows=[];const ms=['raw','drift','tuned'];const lab={raw:'plain',drift:'+drift',tuned:'auto-tuned'};const col={raw:'#8888AA',drift:'#00D4AA',tuned:'#6C63FF'};
+ Object.keys(cov).forEach(H=>ms.forEach(m=>{if(cov[H][m])rows.push([H,m,cov[H][m]])}));
+ const cell=(val,tgt)=>{const p=val*100;const off=Math.abs(p-tgt);const c=off<=4?'#00D4AA':off<=9?'#E8B339':'#FF4757';return <td style={{color:c,fontWeight:off<=4?700:400}}>{p.toFixed(0)}%</td>;};
  return <table><thead><tr><th className="l">H</th><th className="l">band</th><th>1σ <span className="sub">·68</span></th><th>1.5σ <span className="sub">·87</span></th><th>2σ <span className="sub">·95</span></th></tr></thead>
-  <tbody>{rows.map(([H,m,d],i)=><tr key={i}><td className="l">{m==='raw'?H+'d':''}</td><td className="l" style={{color:m==='drift'?'#00D4AA':'#8888AA'}}>{m}</td>
-   <td>{(d['1']*100).toFixed(0)}%</td><td>{(d['1.5']*100).toFixed(0)}%</td><td>{(d['2']*100).toFixed(0)}%</td></tr>)}</tbody></table>;}
+  <tbody>{rows.map(([H,m,d],i)=><tr key={i}><td className="l">{m==='raw'?H+'d':''}</td><td className="l" style={{color:col[m],fontWeight:m==='tuned'?700:400}}>{lab[m]}</td>
+   {cell(d['1'],68)}{cell(d['1.5'],87)}{cell(d['2'],95)}</tr>)}</tbody></table>;}
 
 function StatBox({k,v,d,tone}){return <div style={{flex:1,minWidth:130,background:'var(--surface2)',border:'1px solid var(--line)',borderRadius:12,padding:'12px 14px'}}>
  <div className="sub" style={{fontSize:11,textTransform:'uppercase',letterSpacing:'.5px'}}>{k}</div>
@@ -239,6 +241,43 @@ function StatePanel({s}){ if(!s||s.error) return <div className="sub">{(s&&s.err
   <StatBox k="Skew" v={s.skew} d={s.skew<0?'left / crash skew':'right skew'} tone={s.skew<0?'var(--danger)':'var(--text)'}/>
   <StatBox k="Daily VaR 95%" v={s.var95+'%'} d={'CVaR '+s.cvar95+'%'} tone="var(--danger)"/>
   <StatBox k="Drawdown" v={s.cur_dd+'%'} d={'max '+s.max_dd+'%'} tone="var(--danger)"/>
+ </div>;}
+function TomorrowPanel({t}){ if(!t||t.error) return <div className="sub">{(t&&t.error)||'n/a'}</div>;
+ const calmTone=t.p_calm_tomorrow>=70?'var(--accent2)':t.p_calm_tomorrow>=55?'var(--warn)':'var(--danger)';
+ const b75=t.bands.find(b=>b.target===75)||t.bands[0];
+ return <div>
+  <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+   <StatBox k="Tomorrow likely calm" v={t.p_calm_tomorrow+'%'} d={t.state==='calm'?'on a calm streak':'mixed / active now'} tone={calmTone}/>
+   <StatBox k="Expected move (1 day)" v={'±'+t.sigma_pct+'%'} d="typical daily swing"/>
+   <StatBox k="Vol regime" v={<Badge r={t.regime}/>} d={'stays same '+t.regime_persist_pct+'% of days'}/>
+  </div>
+  <div style={{marginTop:14}}><div className="sub" style={{marginBottom:6}}>Where tomorrow's close will most likely land — each row calibrated so it's right that % of the time on this market's own history</div>
+   <table><thead><tr><th className="l">confidence</th><th>low</th><th>now</th><th>high</th><th>range</th></tr></thead>
+    <tbody>{t.bands.map(b=><tr key={b.target}><td className="l"><b style={{color:b.target===75?'#00D4AA':'#8B83FF'}}>{b.target}%</b> chance inside</td>
+      <td className="down">{fmt(b.low)}</td><td style={{color:'#6C63FF',fontWeight:700}}>{fmt(t.current_price)}</td>
+      <td className="up">{fmt(b.high)}</td><td>{'±'+b.move_pct+'%'}</td></tr>)}</tbody></table></div>
+ </div>;}
+function OISpark({oi}){const ref=useRef();
+ useEffect(()=>{if(!oi||!oi.spark||!window.Plotly)return;
+  window.Plotly.react(ref.current,[{x:oi.spark.t,y:oi.spark.oi,mode:'lines',line:{color:'#6C63FF',width:1.6},fill:'tozeroy',fillcolor:'rgba(108,99,255,0.08)'}],
+   {...PLOT,margin:{t:8,r:10,b:24,l:58},xaxis:{gridcolor:'#22222E',showticklabels:false},yaxis:{title:'total OI',gridcolor:'#22222E'}},{displayModeBar:false,responsive:true});
+ },[oi]);return <div ref={ref} style={{height:170}}/>;}
+function OIPanel({oi}){ if(!oi||oi.error) return <div className="sub">{(oi&&oi.error)||'no OI feed for this market'}</div>;
+ const bias=oi.oi_net_bias, tone=bias==='bullish'?'var(--accent2)':bias==='bearish'?'var(--danger)':'var(--muted)';
+ const bt=oi.oi_buildup, btT=bt==='long buildup'?'var(--accent2)':bt==='short buildup'?'var(--danger)':'var(--warn)';
+ const cp=oi.oi_chg_pct_window, zz=Math.abs(oi.oi_chg_z);
+ return <div>
+  <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+   <StatBox k="Positioning now" v={bt} d={'net bias '+bias} tone={btT}/>
+   <StatBox k="Net bias (recent)" v={bias} d="buildup vs unwinding" tone={tone}/>
+   <StatBox k="Open interest" v={fmt(oi.oi_now)} d={(cp>=0?'+':'')+cp+'% over window'} tone={cp>=0?'var(--accent2)':'var(--danger)'}/>
+   <StatBox k="OI flow (z-score)" v={oi.oi_chg_z} d={zz>1.5?'unusual flow':'normal flow'} tone={zz>1.5?'var(--warn)':undefined}/>
+   <StatBox k="Bars with rising OI" v={oi.oi_rising_bars_pct+'%'} d="fresh positions building"/>
+   <StatBox k="Rolled to later expiry" v={oi.rollover+'%'} d="near-month rollover"/>
+  </div>
+  <div style={{marginTop:14}}><div className="sub" style={{marginBottom:6}}>Total OI across expiries · recent (as of {oi.asof})</div><OISpark oi={oi}/></div>
+  {oi.expiries&&oi.expiries.length>0&&<table style={{marginTop:12}}><thead><tr><th className="l">expiry</th><th>open interest</th><th>share</th></tr></thead>
+   <tbody>{oi.expiries.map(e=><tr key={e.expiry}><td className="l">{e.expiry}</td><td>{fmt(e.oi)}</td><td>{e.share}%</td></tr>)}</tbody></table>}
  </div>;}
 function MacroBanner({macro}){ if(!macro||macro.error) return null;
  const tone=macro.current==='risk-off'?'var(--danger)':macro.current==='risk-on'?'var(--accent2)':'var(--warn)';
@@ -264,11 +303,37 @@ function SwitchGauge({sw,regime}){ if(!sw||sw.error) return <div className="sub"
    <StatBox k="Now in regime" v={<Badge r={regime}/>} d={'as of '+sw.asof}/>
   </div></div>;}
 function Plain({children}){return <div style={{background:'rgba(108,99,255,.07)',borderLeft:'3px solid #6C63FF',borderRadius:'0 8px 8px 0',padding:'9px 13px',margin:'10px 0 4px',fontSize:13.5,lineHeight:1.55,color:'#C2C2DA'}}><b style={{color:'#8B83FF'}}>In plain words — </b>{children}</div>;}
+function RiskPosture({p,bandPct}){ if(!p||p.error) return <div className="sub">{(p&&p.error)||'n/a'}</div>;
+ const C={calm:'#00D4AA',caution:'#FFB020',elevated:'#FF8C42',high:'#FF4757'}; const tone=C[p.level]||'#8888AA';
+ return <div>
+  <div style={{display:'flex',gap:24,flexWrap:'wrap',alignItems:'center'}}>
+   <div style={{minWidth:150}}>
+    <div style={{fontFamily:'var(--mono)',fontSize:46,fontWeight:800,color:tone,lineHeight:1}}>{p.score}<span className="sub" style={{fontSize:15}}>/100</span></div>
+    <div style={{textTransform:'uppercase',letterSpacing:'1px',fontWeight:800,color:tone,marginTop:4,fontSize:15}}>{p.level}</div>
+    <div className="gauge" style={{marginTop:10,width:150}}><div style={{width:p.score+'%',background:tone}}/></div>
+   </div>
+   <div style={{flex:1,minWidth:240}}>
+    <div className="sub" style={{marginBottom:5}}>What to do</div>
+    <div style={{fontSize:15,fontWeight:600,color:tone,marginBottom:10}}>{p.action}</div>
+    {bandPct!=null&&<div className="sub">Expect a 20-day move up to <b style={{color:'#F0F0FF'}}>±{fmt(bandPct)}%</b> (auto-tuned 2σ)</div>}
+   </div>
+  </div>
+  <div style={{marginTop:14}}><div className="sub" style={{marginBottom:6}}>Why — what's pushing the score right now</div>
+   <div className="chips">{p.drivers.map((d,i)=><span key={i} className="badge" style={{background:d.push==='up'?'rgba(255,71,87,.15)':'rgba(0,212,170,.15)',color:d.push==='up'?'#FF4757':'#00D4AA'}}>{d.factor} {d.push==='up'?'↑ risk':'↓ risk'}</span>)}</div></div>
+  <div style={{display:'flex',gap:12,marginTop:16,flexWrap:'wrap'}}>
+   <StatBox k="Accuracy (AUC)" v={p.auc!=null?p.auc:'—'} d="spots high-vol periods" tone={p.auc>0.7?'#00D4AA':undefined}/>
+   <StatBox k="Edge vs persistence" v={p.lift!=null?(p.lift>0?'+':'')+p.lift:'—'} d="what the factors add" tone={p.lift>0?'#00D4AA':'#FF4757'}/>
+   <StatBox k="Best-case (GBM)" v={p.auc_gb!=null?p.auc_gb:'—'} d="nonlinear upper bound"/>
+  </div>
+  <details style={{marginTop:14}}><summary className="sub" style={{cursor:'pointer'}}>Factor weights — the scorecard (+ = raises risk, − = lowers)</summary>
+   <table style={{marginTop:8}}><thead><tr><th className="l">factor</th><th>weight</th></tr></thead>
+    <tbody>{p.weights.map((w,i)=><tr key={i}><td className="l">{w.factor}</td><td style={{color:w.coef>0?'#FF4757':'#00D4AA',fontWeight:600}}>{w.coef>0?'+':''}{w.coef}</td></tr>)}</tbody></table></details>
+  </div>;}
 function KPI({k,v,d,dir,i}){return <div className="kpi" style={{animationDelay:(i*80)+'ms'}}>
  <div className="k">{k}</div><div className="v">{v}</div>
  {d&&<div className={'d '+(dir||'flat')}>{dir==='up'?'▲':dir==='down'?'▼':'●'} {d}</div>}</div>;}
 
-const NAV=[['#top','Overview',IC.dash],['#state','Market Mood',IC.shield],['#findings','What Works',IC.layers],['#cones','Price Swings',IC.chart],['#regime','Calm vs Wild',IC.layers],['#switch','Mood-Change Risk',IC.chart],['#price','Price Range',IC.tag],['#rel','Track Record',IC.shield],['#corr','What Moves Together',IC.grid]];
+const NAV=[['#top','Overview',IC.dash],['#posture','Risk Decision',IC.shield],['#state','Market Mood',IC.shield],['#tomorrow','Tomorrow',IC.chart],['#oi','Positioning',IC.layers],['#findings','What Works',IC.layers],['#cones','Price Swings',IC.chart],['#regime','Calm vs Wild',IC.layers],['#switch','Mood-Change Risk',IC.chart],['#price','Price Range',IC.tag],['#rel','Track Record',IC.shield],['#corr','What Moves Together',IC.grid]];
 const FINDINGS=[
  ['Direction (intraday)','GBM / LSTM','AUC ~0.53 — efficient','b-explosive','near-efficient'],
  ['Movement / spike (30m)','GBM + HMM gate','AUC ~0.65 · top-5% → 69% vs 42%','b-normal','modest edge'],
@@ -285,6 +350,8 @@ function App(){
  if(!d||!sel)return <div style={{padding:40,color:'#8888AA'}}>Loading volatility intelligence…</div>;
  const x=d[sel],c20=x.forecast_cone.find(r=>r.H===20)||{},intr=x.intraday||{};
  const expand=c20.median-x.current; const dr=x.price_bands?x.price_bands.drift_daily_pct:0;
+ const _b20=x.price_bands&&x.price_bands.bands_tuned?x.price_bands.bands_tuned.find(b=>b.H===20):null;
+ const rangePct=_b20?(_b20.up2/x.price_bands.current_price-1)*100:null;
  return <div className="app">
   <aside className="sidebar">
    <div className="brand"><div className="logo">σ</div><span>VolIntel</span></div>
@@ -311,10 +378,24 @@ function App(){
 
     <MacroBanner macro={macro}/>
 
+    <div className="panel" id="posture"><h3>Risk Decision Score <span className="tag">{sel} · multi-factor</span></h3>
+     <Plain>The one-number summary: it blends every signal on this dashboard — vol forecast, regime, mood-change risk, macro, fat-tails — into a single 0–100 "how much risk is ahead" score, with a clear action. <b>It does not call up/down</b> (that's a coin-flip); it calls calm-vs-stormy, which is predictable. "Accuracy" = how well it spotted high-vol periods in the past; "Edge vs persistence" is the honest bit — how much the extra factors add beyond just "vol is already high."</Plain>
+     <RiskPosture p={x.posture} bandPct={rangePct}/></div>
+
     <div className="panel" id="state"><h3>Market Mood — Health Check <span className="tag">{sel} · diagnostic</span></h3>
      <Plain>Is the market calm or stormy right now? Is the price trending in one direction or just bouncing around — and how bad could a rough day get? This is the weather report, not a buy/sell call.</Plain>
      <StatePanel s={x.state}/>
      <p className="sub" style={{marginTop:10}}>Diagnostics describe the regime (Hurst = trend vs mean-revert), tail risk (excess-kurtosis + EVT tail index), skew, and downside (VaR/CVaR, drawdown). State, not alpha.</p></div>
+
+    {x.tomorrow&&<div className="panel" id="tomorrow"><h3>What Tomorrow Likely Looks Like <span className="tag">{sel} · next session</span></h3>
+     <Plain>Honest next-day forecast. We <b>don't</b> predict up vs down — that's a coin-flip nobody beats. We predict <b>how the market behaves</b>: how big the swing will be, whether it stays calm, and the price range it'll most likely hold in. The <b style={{color:'#00D4AA'}}>75% row</b> is tuned so tomorrow's close lands inside it 3 times out of 4 — measured on this market's real history, not assumed.</Plain>
+     <TomorrowPanel t={x.tomorrow}/>
+     <p className="sub" style={{marginTop:10}}>Pure statistics on daily history — exploits volatility clustering (calm follows calm), which is genuinely predictable. Causal: σ = √(today's variance); the band multiplier is the empirical quantile of past |move|/σ. No direction bet, no look-ahead.</p></div>}
+
+    {x.oi&&<div className="panel" id="oi"><h3>Futures Positioning — Open Interest <span className="tag">{sel} · who's in the trade</span></h3>
+     <Plain>Open interest is how many futures contracts are live. Read alongside price it shows whether a move is backed by <b>fresh money</b> (strong) or just position-closing (weak): <b style={{color:'#00D4AA'}}>long buildup</b> = new buyers, <b style={{color:'#FF4757'}}>short buildup</b> = new sellers, <b>short covering</b> = a rally running out of fuel. Recent-data signal (~1 month of futures OI).</Plain>
+     <OIPanel oi={x.oi}/>
+     <p className="sub" style={{marginTop:10}}>Causal: OI forward-filled onto the price grid; buildup = sign(price move) × (rising OI ? strong : weak). Positioning context — blended into the direction call only when explicitly enabled.</p></div>}
 
     <div className="panel" id="findings"><h3>What We Tested — and What Actually Works <span className="tag">honest · backtested</span></h3>
      <Plain>What we tried, and what held up. Guessing tomorrow's up/down = basically a coin-flip (doesn't work). Predicting <i>how much</i> the price will swing = this works and is what the rest of the dashboard is built on.</Plain>
@@ -355,16 +436,18 @@ function App(){
      <SwitchGauge sw={x.switch} regime={x.daily_regime}/>
      <p className="sub" style={{marginTop:12}}>Technical: P(regime switch ≤10d), HistGBM on vol-of-vol features, walk-forward AUC ~0.65–0.67. BOCPD = Bayesian change-point alarm. Predicts switches, not the exact next state.</p></div>
 
-    <div className="panel" id="price"><h3>Where the Price Will Probably Stay <span className="tag">now: {fmt(x.price_bands&&x.price_bands.current_price)}</span></h3>
-     <Plain>The price levels it'll most likely stay between. Roughly 2 days out of 3 it lands inside the 1σ band, and about 19 days out of 20 inside the 2σ band. Left table ignores trend; right table tilts the range in the direction the market's been drifting.</Plain>
+    <div className="panel" id="price"><h3>Where the Price Will Probably Stay <span className="tag">now: {fmt(x.price_bands&&x.price_bands.current_price)}</span>
+      {x.price_bands&&x.price_bands.tuned&&<span className="badge" style={{marginLeft:8,background:'rgba(108,99,255,.18)',color:'#8B83FF'}}>AUTO-TUNED ×{fmt(x.price_bands.fatness)}</span>}</h3>
+     <Plain>The price levels it'll most likely stay between. Roughly 2 days out of 3 it lands inside the 1σ band, ~19 of 20 inside 2σ. <b style={{color:'#8B83FF'}}>Use the green "Auto-tuned" table</b> — it widens the band by each market's real fat-tail history so the hit-ratio actually matches its promise. Left = textbook (no trend), middle = trend-tilted, right = auto-tuned (best).</Plain>
      <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
-      <BandTable bands={x.price_bands.bands} price={x.price_bands.current_price} title="No-drift — pure volatility band"/>
-      <BandTable bands={x.price_bands.bands_drift} price={x.price_bands.current_price} title={'Drift-adjusted — trend '+fmt(dr)+'%/day'}/></div></div>
+      <BandTable bands={x.price_bands.bands} price={x.price_bands.current_price} title="Textbook — no trend"/>
+      <BandTable bands={x.price_bands.bands_drift} price={x.price_bands.current_price} title={'Trend-tilted — '+fmt(dr)+'%/day'}/>
+      {x.price_bands.bands_tuned&&<BandTable bands={x.price_bands.bands_tuned} price={x.price_bands.current_price} title={'★ Auto-tuned (fat-tail ×'+fmt(x.price_bands.fatness)+')'}/>}</div></div>
 
     <div className="row2">
      <div className="panel" id="rel"><h3>Track Record — Were We Right? <span className="tag">{sel} · hit ratio</span></h3>
-      <Plain>The report card. Out of every past day, how often the real price actually stayed inside the band we predicted. Close to 68 / 87 / 95% means the bands are honest and trustworthy. This IS the hit ratio.</Plain><Reliability cov={x.coverage}/>
-      <p className="sub" style={{marginTop:8}}>Backtested coverage. Near 68/87/95% = well-calibrated; drift-adjustment fixes strongly-trending names.</p></div>
+      <Plain>The report card — the hit ratio. Out of every past day, how often the real price actually stayed inside each band. Target is 68 / 87 / 95%; <b style={{color:'#00D4AA'}}>green = bang-on</b>, amber = a bit off, red = off. The <b style={{color:'#6C63FF'}}>"auto-tuned" row</b> is the calibrated band — it should sit closest to target.</Plain><Reliability cov={x.coverage}/>
+      <p className="sub" style={{marginTop:8}}>Walk-forward coverage. "auto-tuned" learns each market's fat-tail multiplier on training folds only, then applies it to unseen test folds — honest, no look-ahead.</p></div>
      <div className="panel"><h3>How Jumpy It's Been <span className="tag">recent</span></h3>
       <Plain>The price's actual jumpiness recently, plotted day by day — the history behind the forecasts above.</Plain><Hist inst={x}/></div>
     </div>

@@ -56,6 +56,9 @@ class ConsensusPredictor:
         _regime = wc.get('regime_multipliers', {}) or {}
         self.regime_trend_boost = float(_regime.get('trend_trending_boost', 0.2))
         self.regime_momentum_boost = float(_regime.get('momentum_ranging_boost', 0.2))
+        # Weight of the Open-Interest positioning vote in the final consensus blend
+        # (0 = ignore). Treated like one extra high-quality "super-indicator".
+        self.oi_weight = float(wc.get('oi_weight', 0.0))
         self.config_level = config_level
         # Categories for grouping
         self.categories = {
@@ -97,14 +100,19 @@ class ConsensusPredictor:
                 grouped['other'].append(col)
         return grouped
 
-    def predict(self, 
-                indicators_df: pd.DataFrame, 
+    def predict(self,
+                indicators_df: pd.DataFrame,
                 quality_df: pd.DataFrame,
                 current_price: pd.Series,
                 atr: pd.Series = None,
-                adx: pd.Series = None) -> pd.DataFrame:
+                adx: pd.Series = None,
+                oi_signal: pd.Series = None) -> pd.DataFrame:
         """
         Generate predictions using advanced Meta-Ensemble consensus
+
+        oi_signal: optional Open-Interest directional vote in [-1, +1], aligned to
+            indicators_df.index (see oi_features.oi_direction_signal). Blended into
+            the final consensus with weight self.oi_weight (0 => ignored).
         """
         print("Calculating advanced consensus predictions...")
         
@@ -148,6 +156,15 @@ class ConsensusPredictor:
 
         final_w_sum = sum(cat_df[cat] * cat_weights.get(cat, 1.0) for cat in cat_df.columns)
         final_q_sum = sum(np.ones(len(cat_df)) * cat_weights.get(cat, 1.0) for cat in cat_df.columns)
+
+        # 5b. Open-Interest positioning vote (extra super-indicator).
+        oi_aligned = None
+        if oi_signal is not None and self.oi_weight > 0:
+            oi_aligned = (oi_signal.reindex(indicators_df.index)
+                          .clip(-1, 1).fillna(0.0))
+            final_w_sum = final_w_sum + self.oi_weight * oi_aligned
+            final_q_sum = final_q_sum + self.oi_weight
+
         consensus_score = final_w_sum / final_q_sum
         
         # 6. Generate final signals
@@ -202,7 +219,10 @@ class ConsensusPredictor:
             'current_price': current_price,
             'config_level': self.config_level
         }, index=indicators_df.index)
-        
+
+        if oi_aligned is not None:
+            results['oi_signal'] = oi_aligned
+
         return results
 
     def calculate_indicator_performance(self,
