@@ -316,6 +316,16 @@ def _tomorrow_behaviour(df, rv, targets=(75, 90)):
     }
 
 
+def _regime_series(df, rv, lookback=520):
+    """Price + daily regime label over time (last ~2y) for the regime-map chart."""
+    reg = daily_regime(rv)
+    cl = df["Close"].astype(float).groupby(drv._day_index(df.index)).last().reindex(rv.index)
+    sub = pd.DataFrame({"price": cl, "regime": reg}).dropna().tail(lookback)
+    return {"date": [pd.Timestamp(d).strftime("%Y-%m-%d") for d in sub.index],
+            "price": [round(float(v), 2) for v in sub["price"]],
+            "regime": [int(v) for v in sub["regime"]]}
+
+
 def _options_edge(name, forecast_cone):
     """Vol Risk Premium: model's realized-vol FORECAST vs the listed IMPLIED vol
     (India VIX). Forecast > implied => options cheap (buy vol); < => rich (sell).
@@ -468,6 +478,7 @@ def instrument_data(daily_path, symbol30, garch=False, oi_symbol=None, name=None
         "asof": str(rv.index[-1].date()),
         "current": round(float(hist_vol.iloc[-1]), 2),
         "forecast_cone": fcast_cone,
+        "regime_chart": _regime_series(df, rv),
         "options": _options_edge(name, fcast_cone),
         "changes": _what_changed(df, rv),
         "hist_cone": _hist_cone(rv),

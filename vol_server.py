@@ -203,6 +203,19 @@ function Cone({inst}){const ref=useRef();
   if(inst.garch)tr.push({x:inst.garch.map(r=>r.H),y:inst.garch.map(r=>r.median),mode:'lines',line:{color:'#FFB020',width:2,dash:'dash'},name:'GARCH'});
   window.Plotly.react(ref.current,tr,{...PLOT,xaxis:{title:'horizon (days)',gridcolor:'#22222E',zeroline:false},yaxis:{title:'ann vol %',gridcolor:'#22222E',zeroline:false},legend:{orientation:'h',font:{size:11}},hoverlabel:{bgcolor:'#16161F',bordercolor:'#6C63FF'}},{displayModeBar:false,responsive:true});
  },[inst]);return <div ref={ref} style={{height:420}}/>;}
+function RegimeChart({rc}){const ref=useRef();
+ useEffect(()=>{if(!rc||!rc.date||!window.Plotly)return;
+  const FILLC={0:'rgba(0,212,170,0.13)',1:'rgba(108,99,255,0.12)',2:'rgba(255,71,87,0.16)'};
+  const d=rc.date,p=rc.price,g=rc.regime; let shapes=[],s=0;
+  for(let i=1;i<=g.length;i++){ if(i===g.length||g[i]!==g[s]){
+   shapes.push({type:'rect',xref:'x',yref:'paper',x0:d[s],x1:d[Math.min(i,g.length-1)],y0:0,y1:1,
+    fillcolor:FILLC[g[s]]||'rgba(0,0,0,0)',line:{width:0},layer:'below'}); s=i; } }
+  window.Plotly.react(ref.current,[{x:d,y:p,mode:'lines',line:{color:'#F0F0FF',width:1.5},name:'price',
+    hovertemplate:'%{x}<br>%{y}<extra></extra>'}],
+   {...PLOT,shapes,margin:{t:8,r:10,b:34,l:56},xaxis:{gridcolor:'#1c1c26',zeroline:false},
+    yaxis:{title:'price',gridcolor:'#22222E',zeroline:false},hoverlabel:{bgcolor:'#16161F',bordercolor:'#6C63FF'}},
+   {displayModeBar:false,responsive:true});
+ },[rc]);return <div ref={ref} style={{height:320}}/>;}
 function Hist({inst}){const ref=useRef();
  useEffect(()=>{if(!inst||!window.Plotly)return;
   window.Plotly.react(ref.current,[{x:inst.hist_series.date,y:inst.hist_series.vol,mode:'lines',line:{color:'#00D4AA',width:1.3},fill:'tozeroy',fillcolor:'rgba(0,212,170,0.06)'}],
@@ -400,7 +413,7 @@ function KPI({k,v,d,dir,i}){return <div className="kpi" style={{animationDelay:(
  <div className="k">{k}</div><div className="v">{v}</div>
  {d&&<div className={'d '+(dir||'flat')}>{dir==='up'?'▲':dir==='down'?'▼':'●'} {d}</div>}</div>;}
 
-const NAV=[['#top','Overview',IC.dash],['#overview','All Markets',IC.grid],['#changes','What Changed',IC.chart],['#posture','Risk Decision',IC.shield],['#state','Market Mood',IC.shield],['#tomorrow','Tomorrow',IC.chart],['#options','Options Edge',IC.tag],['#sizer','Position Size',IC.tag],['#oi','Positioning',IC.layers],['#findings','What Works',IC.layers],['#cones','Price Swings',IC.chart],['#regime','Calm vs Wild',IC.layers],['#switch','Mood-Change Risk',IC.chart],['#price','Price Range',IC.tag],['#rel','Track Record',IC.shield],['#corr','What Moves Together',IC.grid]];
+const NAV=[['#top','Overview',IC.dash],['#overview','All Markets',IC.grid],['#regimemap','Regime Map',IC.chart],['#changes','What Changed',IC.chart],['#posture','Risk Decision',IC.shield],['#state','Market Mood',IC.shield],['#tomorrow','Tomorrow',IC.chart],['#options','Options Edge',IC.tag],['#sizer','Position Size',IC.tag],['#oi','Positioning',IC.layers],['#findings','What Works',IC.layers],['#cones','Price Swings',IC.chart],['#regime','Calm vs Wild',IC.layers],['#switch','Mood-Change Risk',IC.chart],['#price','Price Range',IC.tag],['#rel','Track Record',IC.shield],['#corr','What Moves Together',IC.grid]];
 const FINDINGS=[
  ['Direction (intraday)','GBM / LSTM','AUC ~0.53 — efficient','b-explosive','near-efficient'],
  ['Movement / spike (30m)','GBM + HMM gate','AUC ~0.65 · top-5% → 69% vs 42%','b-normal','modest edge'],
@@ -448,6 +461,11 @@ function App(){
     <div className="panel" id="overview"><h3>All Markets — At a Glance <span className="tag">{Object.keys(d).length} markets · click a row</span></h3>
      <Plain>Where to look first. Every market's risk score (0 = calm), current regime, tomorrow's calm-odds and expected move, and whether its options are cheap/rich — in one place. <b>Click any row</b> to open that market.</Plain>
      <Overview d={d} sel={sel} onPick={setSel}/></div>
+
+    {x.regime_chart&&<div className="panel" id="regimemap"><h3>Regime Map — Price &amp; Market Mood <span className="tag">{sel} · last ~2 years</span></h3>
+     <Plain>The whole story in one picture: the price line, with the background coloured by the market's mood — <b style={{color:'#00D4AA'}}>green = calm</b>, <b style={{color:'#8B83FF'}}>purple = normal</b>, <b style={{color:'#FF4757'}}>red = wild</b>. Red stretches are where big swings clustered. This is the regime detector, drawn.</Plain>
+     <RegimeChart rc={x.regime_chart}/>
+     <div style={{display:'flex',gap:10,marginTop:8,flexWrap:'wrap'}}><span className="badge b-quiet">calm</span><span className="badge b-normal">normal</span><span className="badge b-explosive">wild</span><span className="sub" style={{marginLeft:'auto'}}>shaded by daily volatility regime (HMM, causal)</span></div></div>}
 
     {x.changes&&!x.changes.error&&<div className="panel" id="changes"><h3>What Changed Today <span className="tag">{sel} · vs yesterday</span></h3>
      <Plain>The few things that actually moved since yesterday — so you don't re-read the whole board every morning. Regime flips, volatility jumps, the day's move, and where vol now sits in its yearly range.</Plain>
