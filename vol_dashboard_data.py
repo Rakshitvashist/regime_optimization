@@ -326,6 +326,75 @@ def _regime_series(df, rv, lookback=520):
             "regime": [int(v) for v in sub["regime"]]}
 
 
+def _seasonality(df, rv):
+    """Calendar volatility patterns (causal, descriptive): day-of-week, Thursday
+    (weekly expiry) effect, month-of-year, and the intraday volatility U-shape."""
+    lc = _daily_log_close(df); r = lc.diff().reindex(rv.index)
+    idx = pd.DatetimeIndex(rv.index); ar = (r.abs() * 100)
+    DOW = ["Mon", "Tue", "Wed", "Thu", "Fri"]
+    dow = [{"day": DOW[i], "vol": round(float(ar[idx.dayofweek == i].mean()), 3)}
+           for i in range(5) if (idx.dayofweek == i).sum() > 10]
+    thu = idx.dayofweek == 3
+    expiry = {"thu": round(float(ar[thu].mean()), 3),
+              "other": round(float(ar[~thu].mean()), 3)}
+    MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    months = [{"m": MON[i - 1], "vol": round(float(ar[idx.month == i].mean()), 3)}
+              for i in range(1, 13) if (idx.month == i).sum() > 8]
+    # intraday U-shape: |1-min return| by 30-min bucket, EXCLUDING the overnight gap
+    di = pd.DatetimeIndex(df.index)
+    if di.tz is not None:
+        di = di.tz_convert("Asia/Kolkata")
+    rr = (np.log(df["Close"].astype(float)).diff().abs() * 100).to_numpy()
+    mins = (di.hour * 60 + di.minute).to_numpy()
+    day = di.normalize().to_numpy()
+    first = np.concatenate([[True], day[1:] != day[:-1]])    # drop overnight return
+    rr = np.where(first, np.nan, rr)
+    bucket = (mins // 30) * 30
+    sb = pd.Series(rr).groupby(bucket).mean()
+    intraday = [{"t": f"{int(b)//60:02d}:{int(b)%60:02d}", "vol": round(float(v), 3)}
+                for b, v in sb.items() if 555 <= b <= 930 and np.isfinite(v)]
+    return {"dow": dow, "expiry": expiry, "months": months, "intraday": intraday}
+
+
+def _stress(df, rv):
+    """Scenario / tail-risk: downside moves and the loss they imply per Rs 1 lakh of
+    long exposure. Uses the instrument's own daily-return distribution (no model)."""
+    lc = _daily_log_close(df); r = lc.diff().reindex(rv.index).dropna()
+    P0 = float(np.exp(lc.iloc[-1])); sig = float(np.sqrt(rv.iloc[-1]))
+    arr = r.to_numpy()
+    q01 = float(np.quantile(arr, 0.01)); worst = float(arr.min())
+    scen = [("Typical bad day (−2σ)", -2 * sig),
+            ("Severe day (worst 1%)", q01),
+            ("Crash shock (−10%)", float(np.log(0.90))),
+            ("Worst day on record", worst)]
+    out = []
+    for nm, m in scen:
+        out.append({"name": nm, "move_pct": round((np.exp(m) - 1) * 100, 1),
+                    "price": round(P0 * np.exp(m), 2),
+                    "loss_per_lakh": int(round((1 - np.exp(m)) * 100000))})
+    return {"current_price": round(P0, 2), "daily_sigma_pct": round(sig * 100, 2),
+            "scenarios": out}
+
+
+def _forecast_track(rv, H=20, recent=60):
+    """Live track record of the HAR vol forecast: walk-forward predicted vs realized
+    annualized vol over the recent out-of-sample window, plus fit stats."""
+    try:
+        F, target = har_table(rv, H)
+        yt, yp, td = walk_forward(F, target, H, 8, 0.4)
+        av = np.array([drv.annvol(v) for v in yt]); pv = np.array([drv.annvol(v) for v in yp])
+        n = min(recent, len(td))
+        corr = float(np.corrcoef(av, pv)[0, 1]) if len(av) > 3 else float("nan")
+        mae = float(np.mean(np.abs(av - pv)))
+        ss = float(1 - np.sum((av - pv) ** 2) / (np.sum((av - av.mean()) ** 2) + 1e-9))
+        return {"date": [pd.Timestamp(d).strftime("%Y-%m-%d") for d in td[-n:]],
+                "pred": [round(float(x), 2) for x in pv[-n:]],
+                "actual": [round(float(x), 2) for x in av[-n:]],
+                "corr": round(corr, 2), "mae": round(mae, 2), "r2": round(ss, 2)}
+    except Exception as e:
+        return {"error": f"{type(e).__name__}: {e}"}
+
+
 def _options_edge(name, forecast_cone):
     """Vol Risk Premium: model's realized-vol FORECAST vs the listed IMPLIED vol
     (India VIX). Forecast > implied => options cheap (buy vol); < => rich (sell).
@@ -479,6 +548,9 @@ def instrument_data(daily_path, symbol30, garch=False, oi_symbol=None, name=None
         "current": round(float(hist_vol.iloc[-1]), 2),
         "forecast_cone": fcast_cone,
         "regime_chart": _regime_series(df, rv),
+        "seasonality": _seasonality(df, rv),
+        "stress": _stress(df, rv),
+        "forecast_track": _forecast_track(rv),
         "options": _options_edge(name, fcast_cone),
         "changes": _what_changed(df, rv),
         "hist_cone": _hist_cone(rv),

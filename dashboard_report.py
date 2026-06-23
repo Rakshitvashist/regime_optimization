@@ -8,12 +8,16 @@ use it day to day, the honest evidence behind it, and what to add next.
 """
 from __future__ import annotations
 
+import os
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+from datetime import datetime
+
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
-from reportlab.platypus import (ListFlowable, ListItem, PageBreak, Paragraph,
+from reportlab.platypus import (Image, ListFlowable, ListItem, PageBreak, Paragraph,
                                 SimpleDocTemplate, Spacer, Table, TableStyle)
 
 # ---- palette (matches the dashboard) ----
@@ -36,6 +40,59 @@ BODY = ParagraphStyle("Body", parent=ss["BodyText"], fontSize=10, textColor=INK,
 SMALL = ParagraphStyle("Small", parent=BODY, fontSize=8.5, textColor=MUTED, leading=12)
 LEAD = ParagraphStyle("Lead", parent=BODY, fontSize=11, textColor=INK, leading=16)
 BULLET = ParagraphStyle("Bullet", parent=BODY, leftIndent=4, spaceAfter=3)
+
+
+def make_charts(symbol="NIFTY 50", outdir="."):
+    """Render real Regime-Map and Forecast-Track PNGs from live data. Returns paths
+    (or {} if the data pipeline isn't available)."""
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        import vol_dashboard_data as vdd
+        import daily_rv_forecast as drv
+        from vol_cone import daily_total_var
+        path = vdd.INSTRUMENTS[symbol][0]
+        df = drv._load_1min(path); rv = daily_total_var(df, overnight=True)
+        rc = vdd._regime_series(df, rv); ft = vdd._forecast_track(rv)
+        out = {}
+
+        d = [datetime.strptime(x, "%Y-%m-%d") for x in rc["date"]]
+        g = rc["regime"]; COL = {0: "#C8F3E8", 1: "#DCD9FF", 2: "#FFD6DB"}
+        fig, ax = plt.subplots(figsize=(7.4, 2.5), dpi=150)
+        s = 0
+        for i in range(1, len(g) + 1):
+            if i == len(g) or g[i] != g[s]:
+                ax.axvspan(d[s], d[min(i, len(d) - 1)], color=COL.get(g[s], "#fff"), lw=0)
+                s = i
+        ax.plot(d, rc["price"], color="#1A1A2E", lw=0.9)
+        ax.set_title(f"{symbol} — price shaded by regime  (green=calm · purple=normal · red=wild)",
+                     fontsize=7.5, color="#444")
+        ax.margins(x=0); ax.tick_params(labelsize=6)
+        for sp in ax.spines.values():
+            sp.set_color("#cccccc")
+        rp = os.path.join(outdir, "_chart_regime.png")
+        fig.tight_layout(); fig.savefig(rp, bbox_inches="tight"); plt.close(fig)
+        out["regime"] = rp
+
+        if not ft.get("error"):
+            dd = [datetime.strptime(x, "%Y-%m-%d") for x in ft["date"]]
+            fig, ax = plt.subplots(figsize=(7.4, 2.3), dpi=150)
+            ax.plot(dd, ft["actual"], color="#1A1A2E", lw=1.1, label="actual volatility")
+            ax.plot(dd, ft["pred"], color="#6C63FF", lw=1.4, ls=":", label="our forecast")
+            ax.set_title(f"{symbol} — volatility forecast vs reality (out-of-sample)  "
+                         f"corr {ft['corr']} · R² {ft['r2']}", fontsize=7.5, color="#444")
+            ax.legend(fontsize=6.5, frameon=False); ax.margins(x=0); ax.tick_params(labelsize=6)
+            ax.set_ylabel("ann vol %", fontsize=7)
+            for sp in ax.spines.values():
+                sp.set_color("#cccccc")
+            tp = os.path.join(outdir, "_chart_track.png")
+            fig.tight_layout(); fig.savefig(tp, bbox_inches="tight"); plt.close(fig)
+            out["track"] = tp
+        return out
+    except Exception as e:
+        print("charts skipped:", type(e).__name__, e)
+        return {}
 
 
 def chip(text, color):
@@ -101,6 +158,7 @@ def build(path="Volatility_Dashboard_Report.pdf"):
                             leftMargin=20 * mm, rightMargin=20 * mm,
                             title="Volatility Intelligence Dashboard")
     S = []
+    charts = make_charts()
 
     # ---------------- Title ----------------
     S.append(Spacer(1, 40 * mm))
@@ -146,6 +204,12 @@ def build(path="Volatility_Dashboard_Report.pdf"):
         "<b>Options Edge</b> — a buy-or-sell-options call from forecast vs implied volatility.",
         "<b>Position Size &amp; Stops</b> — turns the volatility into a concrete lot size and stop.",
     ]))
+    if charts.get("regime"):
+        S.append(Spacer(1, 4))
+        S.append(Paragraph("The signature view — the Regime Map (live data):", H2))
+        S.append(Image(charts["regime"], width=165 * mm, height=55 * mm))
+        S.append(Paragraph("Price with the background shaded by market mood. Red stretches "
+                           "are where big swings clustered.", SMALL))
     S.append(PageBreak())
 
     # ---------------- 2. The core finding ----------------
@@ -284,6 +348,10 @@ def build(path="Volatility_Dashboard_Report.pdf"):
         ["High-vol-ahead (risk score)", "Logistic factor blend", "walk-forward AUC ~0.77"],
         ["Direction (any timeframe)", "GBM / LSTM", "~0.50–0.53 — no edge"],
     ], col_widths=[55 * mm, 50 * mm, 60 * mm]))
+    if charts.get("track"):
+        S.append(Spacer(1, 6))
+        S.append(Paragraph("The forecast, tracked live (NIFTY, out-of-sample):", H2))
+        S.append(Image(charts["track"], width=165 * mm, height=51 * mm))
     S.append(Spacer(1, 6))
     S.append(callout("<b>Honest note:</b> the volatility edge is real but modest, and "
                      "stacking many cross-asset / macro factors adds little beyond 'vol is "
@@ -335,6 +403,62 @@ def build(path="Volatility_Dashboard_Report.pdf"):
     S.append(Paragraph("Built on causal, walk-forward-validated models. No look-ahead, no "
                        "direction hype — just the part of the market that is genuinely "
                        "predictable, made usable.", SMALL))
+    S.append(PageBreak())
+
+    # ---------------- 7. Cheat sheet ----------------
+    S.append(Paragraph("7 · One-Page Cheat Sheet", H1))
+    S.append(Paragraph("Every key number, what it means, and the rule of thumb.", BODY))
+    S.append(table([
+        ["Reading", "What it means", "Rule of thumb"],
+        ["Risk score 0–100", "how stormy ahead", "<33 trade normal · >75 defensive"],
+        ["Tomorrow calm %", "odds of a quiet day", ">78% relax · <60% caution"],
+        ["75% band", "range price holds 3 of 4 days", "trade inside · breakout if beyond"],
+        ["Expected move ±σ%", "typical 1-day swing", "base your stop on this"],
+        ["Options edge", "forecast vs implied vol", "cheap = buy vol · rich = sell premium"],
+        ["Regime", "calm / normal / wild", "wild → smaller size, wider stops"],
+        ["Vol vs 1-yr range", "where vol sits now", "high = stretched, may mean-revert"],
+        ["Hurst (Market Mood)", "trend vs mean-revert", ">0.55 trend · <0.45 fade moves"],
+        ["VaR / CVaR 95%", "typical / avg worst daily loss", "size so CVaR is survivable"],
+    ], col_widths=[42 * mm, 62 * mm, 66 * mm]))
+    S.append(PageBreak())
+
+    # ---------------- 8. Worked example ----------------
+    S.append(Paragraph("8 · A Worked Example (a real morning)", H1))
+    S.append(Paragraph("Say you trade NIFTY with ₹2,00,000 and risk 1% per trade. Here is "
+                       "the dashboard, used start to finish:", BODY))
+    S.append(table([
+        ["Step", "You read", "You do"],
+        ["1. Risk score", "16 / 100 — CALM", "Normal size; no defensive trimming."],
+        ["2. Regime Map", "green (calm) lately", "Trend-friendly; not crash mode."],
+        ["3. Tomorrow", "±0.8% move · 75% band 23,725–24,225", "Expect a quiet, range-bound day."],
+        ["4. Options Edge", "forecast ≈ implied (fair)", "No strong vol trade; slight edge to selling premium."],
+        ["5. Position Size", "stop 1.5×σ ≈ 290 pts", "Risk ₹2,000 ÷ 290 ≈ 6–7 units (scale to lots)."],
+        ["6. Stress Test", "worst day ≈ −13% = −₹26k on ₹2L", "Confirm you can survive the tail; keep size sane."],
+    ], col_widths=[34 * mm, 70 * mm, 66 * mm]))
+    S.append(Spacer(1, 6))
+    S.append(callout("<b>The decision:</b> calm regime + quiet day expected + fair options → "
+                     "trade your normal direction view at full size, stop ~290 pts, and prefer "
+                     "selling option premium over buying it. The dashboard set the <i>size, "
+                     "stop and range</i> — you bring the entry."))
+    S.append(PageBreak())
+
+    # ---------------- 9. Glossary ----------------
+    S.append(Paragraph("9 · Glossary", H1))
+    S.append(table([
+        ["Term", "Plain meaning"],
+        ["HAR-RV", "The volatility forecast model — blends short/medium/long past vol."],
+        ["σ (sigma)", "One standard-deviation move; the typical size of a swing."],
+        ["Regime", "The market's volatility state: calm, normal or wild."],
+        ["Implied vol / India VIX", "The volatility option prices are charging for."],
+        ["Realized vol", "The volatility that actually happened."],
+        ["Variance risk premium", "Options usually cost more than realized vol — a seller's edge."],
+        ["Walk-forward", "Train on the past, test on unseen future — an honest backtest."],
+        ["Look-ahead / leakage", "Accidentally using future data; fakes high accuracy."],
+        ["VaR / CVaR", "Typical / average worst-case daily loss (at 95%)."],
+        ["Hurst exponent", "Trend gauge: >0.55 trending, <0.45 mean-reverting."],
+        ["Open interest (OI)", "How many futures contracts are live — positioning."],
+        ["AUC", "Signal quality, 0.5 = useless, 1.0 = perfect."],
+    ], col_widths=[48 * mm, 122 * mm]))
 
     doc.build(S, onFirstPage=_footer, onLaterPages=_footer)
     return path

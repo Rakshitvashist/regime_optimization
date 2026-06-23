@@ -216,6 +216,35 @@ function RegimeChart({rc}){const ref=useRef();
     yaxis:{title:'price',gridcolor:'#22222E',zeroline:false},hoverlabel:{bgcolor:'#16161F',bordercolor:'#6C63FF'}},
    {displayModeBar:false,responsive:true});
  },[rc]);return <div ref={ref} style={{height:320}}/>;}
+function SeasonChart({sea}){const ref=useRef();
+ useEffect(()=>{if(!sea||!window.Plotly)return;const dow=sea.dow,intr=sea.intraday;
+  const t1={x:dow.map(d=>d.day),y:dow.map(d=>d.vol),type:'bar',marker:{color:dow.map(d=>d.day==='Thu'?'#FFB020':'#6C63FF')},xaxis:'x',yaxis:'y'};
+  const t2={x:intr.map(d=>d.t),y:intr.map(d=>d.vol),mode:'lines',line:{color:'#00D4AA',width:2},fill:'tozeroy',fillcolor:'rgba(0,212,170,.08)',xaxis:'x2',yaxis:'y2'};
+  window.Plotly.react(ref.current,[t1,t2],{...PLOT,grid:{rows:1,columns:2,pattern:'independent'},showlegend:false,margin:{t:26,r:10,b:30,l:42},
+    annotations:[{text:'avg move by weekday (%)',x:0,xref:'paper',y:1.15,yref:'paper',showarrow:false,font:{size:11,color:'#8888AA'},xanchor:'left'},
+                 {text:'intraday U-shape (avg 1-min move %)',x:1,xref:'paper',y:1.15,yref:'paper',showarrow:false,font:{size:11,color:'#8888AA'},xanchor:'right'}],
+    xaxis:{gridcolor:'#22222E'},yaxis:{gridcolor:'#22222E'},xaxis2:{gridcolor:'#22222E'},yaxis2:{gridcolor:'#22222E'}},{displayModeBar:false,responsive:true});
+ },[sea]);return <div ref={ref} style={{height:230}}/>;}
+function SeasonalityPanel({sea}){ if(!sea||sea.error) return <div className="sub">{(sea&&sea.error)||'n/a'}</div>;
+ const e=sea.expiry,calm=sea.dow.reduce((a,b)=>b.vol<a.vol?b:a),wild=sea.dow.reduce((a,b)=>b.vol>a.vol?b:a);
+ return <div><SeasonChart sea={sea}/>
+  <div style={{display:'flex',gap:12,marginTop:12,flexWrap:'wrap'}}>
+   <StatBox k="Thursday (expiry day)" v={e.thu+'%'} d={'vs '+e.other+'% other days'} tone={e.thu>e.other?'#FFB020':'#00D4AA'}/>
+   <StatBox k="Calmest weekday" v={calm.day} d={calm.vol+'% avg move'} tone="#00D4AA"/>
+   <StatBox k="Wildest weekday" v={wild.day} d={wild.vol+'% avg move'} tone="#FF4757"/>
+  </div></div>;}
+function ForecastTrackChart({ft}){const ref=useRef();
+ useEffect(()=>{if(!ft||ft.error||!window.Plotly)return;
+  window.Plotly.react(ref.current,[
+   {x:ft.date,y:ft.actual,mode:'lines',line:{color:'#F0F0FF',width:1.6},name:'actual'},
+   {x:ft.date,y:ft.pred,mode:'lines',line:{color:'#6C63FF',width:2,dash:'dot'},name:'our forecast'}],
+   {...PLOT,margin:{t:8,r:10,b:30,l:46},legend:{orientation:'h',font:{size:11}},xaxis:{gridcolor:'#22222E'},yaxis:{title:'ann vol %',gridcolor:'#22222E'}},{displayModeBar:false,responsive:true});
+ },[ft]);return <div ref={ref} style={{height:240}}/>;}
+function StressPanel({s}){ if(!s||s.error) return <div className="sub">{(s&&s.error)||'n/a'}</div>;
+ return <table><thead><tr><th className="l">downside scenario</th><th>move</th><th>price</th><th>loss / ₹1L long</th></tr></thead>
+  <tbody>{s.scenarios.map((r,i)=><tr key={i}><td className="l">{r.name}</td>
+    <td className="down" style={{fontWeight:600}}>{r.move_pct}%</td><td>{fmt(r.price)}</td>
+    <td style={{color:'#FF4757',fontWeight:700}}>₹{r.loss_per_lakh.toLocaleString('en-IN')}</td></tr>)}</tbody></table>;}
 function Hist({inst}){const ref=useRef();
  useEffect(()=>{if(!inst||!window.Plotly)return;
   window.Plotly.react(ref.current,[{x:inst.hist_series.date,y:inst.hist_series.vol,mode:'lines',line:{color:'#00D4AA',width:1.3},fill:'tozeroy',fillcolor:'rgba(0,212,170,0.06)'}],
@@ -413,7 +442,7 @@ function KPI({k,v,d,dir,i}){return <div className="kpi" style={{animationDelay:(
  <div className="k">{k}</div><div className="v">{v}</div>
  {d&&<div className={'d '+(dir||'flat')}>{dir==='up'?'▲':dir==='down'?'▼':'●'} {d}</div>}</div>;}
 
-const NAV=[['#top','Overview',IC.dash],['#overview','All Markets',IC.grid],['#regimemap','Regime Map',IC.chart],['#changes','What Changed',IC.chart],['#posture','Risk Decision',IC.shield],['#state','Market Mood',IC.shield],['#tomorrow','Tomorrow',IC.chart],['#options','Options Edge',IC.tag],['#sizer','Position Size',IC.tag],['#oi','Positioning',IC.layers],['#findings','What Works',IC.layers],['#cones','Price Swings',IC.chart],['#regime','Calm vs Wild',IC.layers],['#switch','Mood-Change Risk',IC.chart],['#price','Price Range',IC.tag],['#rel','Track Record',IC.shield],['#corr','What Moves Together',IC.grid]];
+const NAV=[['#top','Overview',IC.dash],['#overview','All Markets',IC.grid],['#regimemap','Regime Map',IC.chart],['#seasonality','Seasonality',IC.chart],['#changes','What Changed',IC.chart],['#stress','Stress Test',IC.shield],['#ftrack','Forecast Track',IC.chart],['#posture','Risk Decision',IC.shield],['#state','Market Mood',IC.shield],['#tomorrow','Tomorrow',IC.chart],['#options','Options Edge',IC.tag],['#sizer','Position Size',IC.tag],['#oi','Positioning',IC.layers],['#findings','What Works',IC.layers],['#cones','Price Swings',IC.chart],['#regime','Calm vs Wild',IC.layers],['#switch','Mood-Change Risk',IC.chart],['#price','Price Range',IC.tag],['#rel','Track Record',IC.shield],['#corr','What Moves Together',IC.grid]];
 const FINDINGS=[
  ['Direction (intraday)','GBM / LSTM','AUC ~0.53 — efficient','b-explosive','near-efficient'],
  ['Movement / spike (30m)','GBM + HMM gate','AUC ~0.65 · top-5% → 69% vs 42%','b-normal','modest edge'],
@@ -467,6 +496,11 @@ function App(){
      <RegimeChart rc={x.regime_chart}/>
      <div style={{display:'flex',gap:10,marginTop:8,flexWrap:'wrap'}}><span className="badge b-quiet">calm</span><span className="badge b-normal">normal</span><span className="badge b-explosive">wild</span><span className="sub" style={{marginLeft:'auto'}}>shaded by daily volatility regime (HMM, causal)</span></div></div>}
 
+    {x.seasonality&&<div className="panel" id="seasonality"><h3>Seasonality — When the Market Moves <span className="tag">{sel} · calendar patterns</span></h3>
+     <Plain>Volatility has a calendar. This shows which <b>weekday</b> tends to move most, the <b>expiry-day (Thursday)</b> effect, and the <b>intraday U-shape</b> — markets are jumpy at the open and close, calm at lunch. Use it to time entries and pick wider stops on the wild days/hours.</Plain>
+     <SeasonalityPanel sea={x.seasonality}/>
+     <p className="sub" style={{marginTop:10}}>Average absolute move per bucket over full history. Intraday excludes the overnight gap. Descriptive, causal — a structural tendency, not a guarantee.</p></div>}
+
     {x.changes&&!x.changes.error&&<div className="panel" id="changes"><h3>What Changed Today <span className="tag">{sel} · vs yesterday</span></h3>
      <Plain>The few things that actually moved since yesterday — so you don't re-read the whole board every morning. Regime flips, volatility jumps, the day's move, and where vol now sits in its yearly range.</Plain>
      <ChangesPanel c={x.changes}/></div>}
@@ -494,6 +528,20 @@ function App(){
      <Plain>Turn the volatility forecast into an actual trade plan. Enter your capital and how much you're willing to risk — it sets a <b>stop distance</b> from the market's real daily move, and the <b>position size</b> so a stop-out costs exactly your chosen risk, never more. Vol-based, so stops auto-widen when the market turns wild.</Plain>
      <PositionSizer t={x.tomorrow} regime={x.daily_regime}/>
      <p className="sub" style={{marginTop:10}}>Stop = (your multiple) × today's 1-day move (σ). Size = max-₹-risk ÷ stop distance, so worst-case loss = capital × risk%. Educational sizing tool, not financial advice — set lot size for F&amp;O.</p></div>}
+
+    {x.stress&&<div className="panel" id="stress"><h3>Stress Test — What a Bad Day Costs <span className="tag">{sel} · tail risk</span></h3>
+     <Plain>Before you size up, see the damage a rough day can do. These are real downside scenarios drawn from this market's own history — a typical bad day, a 1-in-100 day, a −10% crash, and the worst day ever recorded — with the loss on every ₹1 lakh of long exposure.</Plain>
+     <StressPanel s={x.stress}/>
+     <p className="sub" style={{marginTop:10}}>From the instrument's daily-return distribution (σ = ±{fmt(x.stress.daily_sigma_pct)}% today). Scale the loss to your exposure: ₹5L position → 5× these numbers. Tail risk is real — fat-tailed markets crash faster than a bell curve predicts.</p></div>}
+
+    {x.forecast_track&&!x.forecast_track.error&&<div className="panel" id="ftrack"><h3>Forecast Track Record — Did It Work? <span className="tag">{sel} · predicted vs realized</span></h3>
+     <Plain>Proof the volatility forecast is real: our prediction (dotted) laid over what actually happened (solid), out-of-sample. They track together — that's the edge, shown honestly, not claimed.</Plain>
+     <ForecastTrackChart ft={x.forecast_track}/>
+     <div style={{display:'flex',gap:12,marginTop:12,flexWrap:'wrap'}}>
+      <StatBox k="Forecast vs actual (corr)" v={x.forecast_track.corr} d="1.0 = perfect tracking" tone={x.forecast_track.corr>0.4?'#00D4AA':undefined}/>
+      <StatBox k="Fit (R²)" v={x.forecast_track.r2} d="variance explained, OOS"/>
+      <StatBox k="Avg error" v={'±'+x.forecast_track.mae+'%'} d="mean abs error (vol pts)"/>
+     </div></div>}
 
     {x.oi&&<div className="panel" id="oi"><h3>Futures Positioning — Open Interest <span className="tag">{sel} · who's in the trade</span></h3>
      <Plain>Open interest is how many futures contracts are live. Read alongside price it shows whether a move is backed by <b>fresh money</b> (strong) or just position-closing (weak): <b style={{color:'#00D4AA'}}>long buildup</b> = new buyers, <b style={{color:'#FF4757'}}>short buildup</b> = new sellers, <b>short covering</b> = a rally running out of fuel. Recent-data signal (~1 month of futures OI).</Plain>
