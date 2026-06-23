@@ -299,6 +299,42 @@ function TomorrowPanel({t}){ if(!t||t.error) return <div className="sub">{(t&&t.
       <td className="down">{fmt(b.low)}</td><td style={{color:'#C9A227',fontWeight:700}}>{fmt(t.current_price)}</td>
       <td className="up">{fmt(b.high)}</td><td>{'±'+b.move_pct+'%'}</td></tr>)}</tbody></table></div>
  </div>;}
+function DecisionSummary({x}){
+ const po=x.posture||{}, tm=x.tomorrow||{}, o=(x.options&&!x.options.error)?x.options:null;
+ const c20=(x.forecast_cone||[]).find(r=>r.H===20)||{};
+ const lvl=po.level||'n/a';
+ const TONE={calm:'#2FA56B',caution:'#CAA53D',elevated:'#E08A3C',high:'#CF4A4A'};
+ const tone=TONE[lvl]||'#8BA1BA';
+ const ACT={calm:'Trade as usual — normal size & stops.',caution:'Slightly elevated — trim oversized positions.',elevated:'Reduce size, widen stops — expect bigger swings.',high:'Defensive — cut size, hedge, expect a vol spike.'};
+ const act=ACT[lvl]||'—';
+ const b75=(tm.bands||[]).find(b=>b.target===75);
+ const optTxt=o?(o.state==='cheap'?'BUY options — cheap':o.state==='rich'?'SELL premium — rich':'Fair — slight edge to selling'):'no IV feed';
+ const optTone=o?(o.state==='cheap'?'#2FA56B':o.state==='rich'?'#CF4A4A':'#CAA53D'):'#8BA1BA';
+ const chg=(x.changes&&!x.changes.error)?x.changes.items:[];
+ const oi=(x.oi&&!x.oi.error)?x.oi:null;
+ const tile=(k,v,d,t)=><div style={{flex:'1 1 150px',minWidth:138,background:'var(--surface2)',border:'1px solid var(--line)',borderRadius:12,padding:'12px 14px'}}>
+   <div className="sub" style={{fontSize:11,textTransform:'uppercase',letterSpacing:'.5px'}}>{k}</div>
+   <div style={{fontFamily:'var(--mono)',fontSize:20,fontWeight:700,marginTop:6,color:t||'var(--text)'}}>{v}</div>
+   {d&&<div className="sub" style={{marginTop:3}}>{d}</div>}</div>;
+ return <div>
+  <div style={{display:'flex',alignItems:'center',gap:18,flexWrap:'wrap',padding:'15px 18px',borderRadius:12,background:'linear-gradient(90deg,'+tone+'22,transparent)',borderLeft:'5px solid '+tone,marginBottom:16}}>
+   <div><div className="sub">Bottom line</div>
+    <div style={{fontSize:26,fontWeight:800,color:tone,lineHeight:1.05,marginTop:2}}>{lvl.toUpperCase()}</div></div>
+   <div style={{flex:1,minWidth:240}}><div style={{fontSize:15,fontWeight:600}}>{act}</div>
+    <div className="sub" style={{marginTop:3}}>Risk {po.score!=null?po.score+'/100':'—'} · {x.daily_regime} regime · options: {optTxt}{oi?(' · OI '+oi.oi_net_bias):''}</div></div>
+  </div>
+  <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+   {tile('Risk score',po.score!=null?po.score+'/100':'—',lvl,tone)}
+   {tile('Market regime',x.daily_regime||'—','volatility state')}
+   {tile('Tomorrow move',tm.sigma_pct!=null?'±'+tm.sigma_pct+'%':'—',(tm.p_calm_tomorrow!=null?tm.p_calm_tomorrow+'% calm odds':''))}
+   {tile('Next-month vol',c20.median!=null?fmt(c20.median)+'%':'—',(c20.median>x.current?'rising vs now':'easing vs now'))}
+   {tile('Options',o?o.state:'—',optTxt,optTone)}
+   {b75&&tile('Tomorrow range (75%)',fmt(b75.low)+' – '+fmt(b75.high),'±'+b75.move_pct+'%')}
+   {oi&&tile('Positioning',oi.oi_net_bias,oi.oi_buildup,oi.oi_net_bias==='bullish'?'#2FA56B':oi.oi_net_bias==='bearish'?'#CF4A4A':'#8BA1BA')}
+  </div>
+  {chg.length>0&&<div style={{marginTop:14}}><div className="sub" style={{marginBottom:6}}>Just changed</div>
+   <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>{chg.slice(0,4).map((it,i)=><span key={i} className="badge" style={{background:'var(--surface2)',color:'var(--text)',border:'1px solid var(--line)'}}>{it.label}: {it.detail}</span>)}</div></div>}
+ </div>;}
 function Overview({d,sel,onPick}){
  const lc={calm:'#2FA56B',caution:'#FFB020',elevated:'#FF8C42',high:'#FF4757'};
  const rows=Object.keys(d).map(n=>{const x=d[n],po=x.posture||{},tm=x.tomorrow||{};
@@ -442,7 +478,7 @@ function KPI({k,v,d,dir,i}){return <div className="kpi" style={{animationDelay:(
  <div className="k">{k}</div><div className="v">{v}</div>
  {d&&<div className={'d '+(dir||'flat')}>{dir==='up'?'▲':dir==='down'?'▼':'●'} {d}</div>}</div>;}
 
-const NAV=[['#top','Overview',IC.dash],['#overview','All Markets',IC.grid],['#regimemap','Regime Map',IC.chart],['#seasonality','Seasonality',IC.chart],['#changes','What Changed',IC.chart],['#stress','Stress Test',IC.shield],['#ftrack','Forecast Track',IC.chart],['#posture','Risk Decision',IC.shield],['#state','Market Mood',IC.shield],['#tomorrow','Tomorrow',IC.chart],['#options','Options Edge',IC.tag],['#sizer','Position Size',IC.tag],['#oi','Positioning',IC.layers],['#findings','What Works',IC.layers],['#cones','Price Swings',IC.chart],['#regime','Calm vs Wild',IC.layers],['#switch','Mood-Change Risk',IC.chart],['#price','Price Range',IC.tag],['#rel','Track Record',IC.shield],['#corr','What Moves Together',IC.grid]];
+const NAV=[['#top','Overview',IC.dash],['#summary','Decision Summary',IC.shield],['#overview','All Markets',IC.grid],['#regimemap','Regime Map',IC.chart],['#seasonality','Seasonality',IC.chart],['#changes','What Changed',IC.chart],['#stress','Stress Test',IC.shield],['#ftrack','Forecast Track',IC.chart],['#posture','Risk Decision',IC.shield],['#state','Market Mood',IC.shield],['#tomorrow','Tomorrow',IC.chart],['#options','Options Edge',IC.tag],['#sizer','Position Size',IC.tag],['#oi','Positioning',IC.layers],['#findings','What Works',IC.layers],['#cones','Price Swings',IC.chart],['#regime','Calm vs Wild',IC.layers],['#switch','Mood-Change Risk',IC.chart],['#price','Price Range',IC.tag],['#rel','Track Record',IC.shield],['#corr','What Moves Together',IC.grid]];
 const FINDINGS=[
  ['Direction (intraday)','GBM / LSTM','AUC ~0.53 — efficient','b-explosive','near-efficient'],
  ['Movement / spike (30m)','GBM + HMM gate','AUC ~0.65 · top-5% → 69% vs 42%','b-normal','modest edge'],
@@ -484,6 +520,10 @@ function App(){
      <KPI i={2} k="Market mood now" v={<Badge r={x.daily_regime}/>} d={"forecast fit R² "+fmt(c20.r2)} dir="flat"/>
      <KPI i={3} k="Stayed in range (past)" v={fmt(x.coverage['20']['raw']['2']*100)+'%'} d={'inside wide band · 1σ '+fmt(x.coverage['20']['raw']['1']*100)+'% · backtested'} dir={x.coverage['20']['raw']['2']>=0.9?'up':'down'}/>
     </div>
+
+    <div className="panel" id="summary"><h3>Decision Summary <span className="tag">{sel} · every forecast, one glance</span></h3>
+     <Plain>The whole dashboard's conclusion in one place — the single risk verdict, the regime, tomorrow's expected move and range, the month-ahead volatility, options cheap/rich, and positioning. This is the <b>"what do I do"</b> view; the panels below show the detail behind each call.</Plain>
+     <DecisionSummary x={x}/></div>
 
     <MacroBanner macro={macro}/>
 
