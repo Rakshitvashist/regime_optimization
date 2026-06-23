@@ -99,9 +99,9 @@ PAGE = r"""<!doctype html><html lang="en"><head><meta charset="utf-8"/>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <style>
 :root{
- --bg:#0A0A0F;--surface:#111118;--surface2:#16161F;--line:#22222E;
- --accent:#6C63FF;--accent2:#00D4AA;--danger:#FF4757;--warn:#FFB020;
- --text:#F0F0FF;--muted:#8888AA;
+ --bg:#0A1626;--surface:#0F2036;--surface2:#16293F;--line:#26405C;
+ --accent:#C9A227;--accent2:#2FA56B;--steel:#2F6DA4;--danger:#CF4A4A;--warn:#CAA53D;
+ --text:#E9F0F8;--muted:#8BA1BA;
  --tf:150ms;--tb:250ms;--ease:cubic-bezier(0.4,0,0.2,1);
  --mono:'JetBrains Mono',monospace;--ui:'Inter',sans-serif;
 }
@@ -109,17 +109,17 @@ PAGE = r"""<!doctype html><html lang="en"><head><meta charset="utf-8"/>
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px;overflow-x:hidden}
 ::-webkit-scrollbar{width:9px;height:9px}
-::-webkit-scrollbar-thumb{background:rgba(108,99,255,.5);border-radius:8px}
+::-webkit-scrollbar-thumb{background:rgba(201,162,39,.5);border-radius:8px}
 ::-webkit-scrollbar-thumb:hover{background:var(--accent)}
 ::-webkit-scrollbar-track{background:transparent}
 a{text-decoration:none}
 .app{display:flex;min-height:100vh}
 .sidebar{width:240px;position:fixed;inset:0 auto 0 0;background:var(--surface);border-right:1px solid var(--line);padding:22px 0;display:flex;flex-direction:column;z-index:30}
 .brand{display:flex;align-items:center;gap:11px;padding:0 22px 24px;font-weight:800;font-size:16px;letter-spacing:.2px}
-.brand .logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:800;color:#0A0A0F;box-shadow:0 6px 18px rgba(108,99,255,.35)}
+.brand .logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:800;color:#0A1626;box-shadow:0 6px 18px rgba(201,162,39,.35)}
 .nav{display:flex;flex-direction:column;gap:3px;padding:0 12px;flex:1}
 .nav a{position:relative;display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:11px;color:var(--muted);font-weight:500;border-left:2px solid transparent;overflow:hidden;will-change:transform;transition:color var(--tb) var(--ease),border-color var(--tb) var(--ease)}
-.nav a::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(108,99,255,.20),transparent);transform:translateX(-100%);transition:transform var(--tb) var(--ease);z-index:0}
+.nav a::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(201,162,39,.20),transparent);transform:translateX(-100%);transition:transform var(--tb) var(--ease);z-index:0}
 .nav a span,.nav a svg{position:relative;z-index:1}
 .nav a:hover,.nav a.active{color:var(--text);border-left-color:var(--accent)}
 .nav a:hover::before,.nav a.active::before{transform:translateX(0)}
@@ -127,22 +127,22 @@ a{text-decoration:none}
 .nav a:hover svg{transform:scale(1.15)}
 .side-foot{padding:16px 22px 0;color:var(--muted);font-size:11px;border-top:1px solid var(--line);margin:8px 12px 0}
 .main{margin-left:240px;flex:1;min-width:0}
-.header{position:sticky;top:0;z-index:25;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 28px;background:rgba(17,17,24,.7);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+.header{position:sticky;top:0;z-index:25;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 28px;background:rgba(15,32,54,.7);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
 .header h1{font-size:17px;font-weight:700} .header .sub{color:var(--muted);font-size:12px;margin-top:2px}
 .hgroup{display:flex;align-items:center;gap:14px}
 select.inst{background:var(--surface2);color:var(--text);border:1px solid var(--line);padding:9px 15px;border-radius:11px;font-family:var(--ui);font-weight:600;font-size:13px;cursor:pointer;transition:border-color var(--tb) var(--ease),box-shadow var(--tb) var(--ease)}
-select.inst:hover{border-color:var(--accent);box-shadow:0 0 0 3px rgba(108,99,255,.14)}
+select.inst:hover{border-color:var(--accent);box-shadow:0 0 0 3px rgba(201,162,39,.14)}
 .live{display:flex;align-items:center;gap:7px;color:var(--accent2);font-size:12px;font-weight:600}
 .pulse{width:8px;height:8px;border-radius:50%;background:var(--accent2);animation:pulse 2s infinite}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(0,212,170,.5)}70%{box-shadow:0 0 0 8px rgba(0,212,170,0)}100%{box-shadow:0 0 0 0 rgba(0,212,170,0)}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,165,107,.5)}70%{box-shadow:0 0 0 8px rgba(47,165,107,0)}100%{box-shadow:0 0 0 0 rgba(47,165,107,0)}}
 .iconbtn{width:38px;height:38px;border-radius:11px;background:var(--surface2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);transition:transform var(--tb) var(--ease),border-color var(--tb) var(--ease),color var(--tb) var(--ease)}
 .bell:hover{transform:rotate(14deg);border-color:var(--accent);color:var(--text)}
-.avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:700;color:#0A0A0F;cursor:pointer;transition:transform var(--tb) var(--ease)}
+.avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:700;color:#0A1626;cursor:pointer;transition:transform var(--tb) var(--ease)}
 .avatar:hover{transform:scale(1.08)}
 .content{padding:24px 28px 70px;max-width:1280px}
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}
 .kpi{background:var(--surface);border:1px solid transparent;border-radius:16px;padding:18px 20px;position:relative;overflow:hidden;will-change:transform;opacity:0;transform:translateY(12px);animation:rise .55s var(--ease) forwards;transition:transform var(--tb) var(--ease),box-shadow var(--tb) var(--ease),border-color var(--tb) var(--ease)}
-.kpi:hover{transform:translateY(-4px);box-shadow:0 20px 40px rgba(108,99,255,.15);border-color:var(--accent)}
+.kpi:hover{transform:translateY(-4px);box-shadow:0 20px 40px rgba(201,162,39,.15);border-color:var(--accent)}
 .kpi .k{color:var(--muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px}
 .kpi .v{font-family:var(--mono);font-size:28px;font-weight:700;margin-top:11px;line-height:1}
 .kpi .d{font-size:12px;font-weight:600;margin-top:9px;display:flex;align-items:center;gap:5px}
@@ -150,20 +150,20 @@ select.inst:hover{border-color:var(--accent);box-shadow:0 0 0 3px rgba(108,99,25
 .up{color:var(--accent2)}.down{color:var(--danger)}.flat{color:var(--muted)}
 @keyframes rise{to{opacity:1;transform:translateY(0)}}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin-bottom:16px;transition:border-color var(--tb) var(--ease)}
-.panel:hover{border-color:rgba(108,99,255,.4)}
-.panel h3{font-size:14px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:9px}
-.panel h3 .tag{font-size:10px;color:var(--accent2);background:rgba(0,212,170,.12);padding:3px 9px;border-radius:20px;font-weight:700;letter-spacing:.4px}
+.panel:hover{border-color:rgba(201,162,39,.4)}
+.panel h3{font-size:13px;font-weight:700;margin:-18px -20px 16px;padding:12px 20px;display:flex;align-items:center;gap:9px;background:linear-gradient(90deg,var(--steel),#27557E);color:#FFFFFF;border-radius:15px 15px 0 0;border-left:4px solid var(--accent);letter-spacing:.3px}
+.panel h3 .tag{font-size:10px;color:#FFFFFF;background:rgba(255,255,255,.20);padding:3px 9px;border-radius:20px;font-weight:700;letter-spacing:.4px}
 .row2{display:grid;grid-template-columns:1.7fr 1fr;gap:16px}
 .row2>.panel{margin-bottom:0}
 table{border-collapse:collapse;width:100%;font-size:13px;font-family:var(--mono)}
 th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--line)}
-th{color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;font-family:var(--ui);letter-spacing:.5px}
+th{color:#CFE0F0;font-weight:700;font-size:10px;text-transform:uppercase;font-family:var(--ui);letter-spacing:.5px;background:rgba(47,109,164,.26)}
 td.l,th.l{text-align:left}
 tbody tr{position:relative;transition:color var(--tf) var(--ease)}
-tbody tr::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(108,99,255,.10),transparent);transform:scaleX(0);transform-origin:left;transition:transform var(--tb) var(--ease);z-index:-1}
+tbody tr::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(201,162,39,.10),transparent);transform:scaleX(0);transform-origin:left;transition:transform var(--tb) var(--ease);z-index:-1}
 tbody tr:hover::after{transform:scaleX(1)}
 .badge{display:inline-block;padding:3px 11px;border-radius:20px;font-size:12px;font-weight:600;font-family:var(--ui)}
-.b-quiet{background:rgba(0,212,170,.15);color:var(--accent2)}
+.b-quiet{background:rgba(47,165,107,.15);color:var(--accent2)}
 .b-normal{background:rgba(255,176,32,.16);color:var(--warn)}
 .b-explosive{background:rgba(255,71,87,.16);color:var(--danger)}
 .b-na{background:var(--surface2);color:var(--muted)}
@@ -171,16 +171,16 @@ tbody tr:hover::after{transform:scaleX(1)}
 .gauge>div{height:100%;background:linear-gradient(90deg,var(--accent2),var(--warn),var(--danger));transition:width var(--tb) var(--ease)}
 .chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
 .sub{color:var(--muted);font-size:12px}
-.tabs{display:flex;gap:8px;overflow-x:auto;padding:16px 28px 2px;position:sticky;top:67px;z-index:14;background:rgba(10,10,15,.85);backdrop-filter:blur(10px)}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding:16px 28px 2px;position:sticky;top:67px;z-index:14;background:rgba(10,22,38,.85);backdrop-filter:blur(10px)}
 .tab{padding:9px 16px;border-radius:11px;background:var(--surface);border:1px solid var(--line);color:var(--muted);font-weight:600;font-size:13px;font-family:var(--ui);cursor:pointer;white-space:nowrap;transition:color var(--tb) var(--ease),border-color var(--tb) var(--ease),transform var(--tb) var(--ease),background var(--tb) var(--ease)}
 .tab:hover{color:var(--text);border-color:var(--accent);transform:translateY(-2px)}
-.tab.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0A0A0F;border-color:transparent;box-shadow:0 8px 20px rgba(108,99,255,.3)}
+.tab.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0A1626;border-color:transparent;box-shadow:0 8px 20px rgba(201,162,39,.3)}
 @media(max-width:980px){.kpis{grid-template-columns:repeat(2,1fr)}.row2{grid-template-columns:1fr}
  .sidebar{width:62px}.brand span,.nav a span,.side-foot{display:none}.main{margin-left:62px}.content{padding:18px}}
 </style></head><body><div id="root"></div>
 <script type="text/plain" id="appsrc">
 const {useState,useEffect,useRef}=React;
-const FILL={2:'rgba(108,99,255,0.10)',1.5:'rgba(108,99,255,0.20)',1:'rgba(108,99,255,0.38)'};
+const FILL={2:'rgba(201,162,39,0.10)',1.5:'rgba(201,162,39,0.20)',1:'rgba(201,162,39,0.38)'};
 const fmt=n=>n==null||isNaN(n)?'—':(Math.abs(n)>=1000?Number(n).toLocaleString(undefined,{maximumFractionDigits:0}):Number(n).toFixed(2));
 const IC={
  dash:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>,
@@ -191,21 +191,21 @@ const IC={
  grid:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 6h8M6 8v8M18 8v8M8 18h8"/></svg>,
  bell:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>,
 };
-const PLOT={paper_bgcolor:'#111118',plot_bgcolor:'#111118',font:{color:'#F0F0FF',family:'Inter'},margin:{t:8,r:10,b:42,l:48}};
+const PLOT={paper_bgcolor:'#0F2036',plot_bgcolor:'#0F2036',font:{color:'#F0F0FF',family:'Inter'},margin:{t:8,r:10,b:42,l:48}};
 function Badge({r}){return <span className={'badge '+(({quiet:'b-quiet',normal:'b-normal',explosive:'b-explosive'})[r]||'b-na')}>{r}</span>;}
 
 function Cone({inst}){const ref=useRef();
  useEffect(()=>{if(!inst||!window.Plotly)return;const c=inst.forecast_cone,H=c.map(r=>r.H);let tr=[];
   [2,1.5,1].forEach(k=>{tr.push({x:H,y:c.map(r=>r['up'+k]),mode:'lines',line:{width:0},showlegend:false,hoverinfo:'skip'});
    tr.push({x:H,y:c.map(r=>r['dn'+k]),mode:'lines',line:{width:0},fill:'tonexty',fillcolor:FILL[k],name:k+'σ',hoverinfo:'skip'});});
-  tr.push({x:H,y:c.map(r=>r.median),mode:'lines+markers',line:{color:'#6C63FF',width:3},marker:{size:6,color:'#6C63FF'},name:'HAR median'});
-  const hc=inst.hist_cone||[];if(hc.length){tr.push({x:hc.map(r=>r.H),y:hc.map(r=>r.median),mode:'lines',line:{color:'#00D4AA',width:1.6,dash:'dot'},name:'hist median'});}
+  tr.push({x:H,y:c.map(r=>r.median),mode:'lines+markers',line:{color:'#C9A227',width:3},marker:{size:6,color:'#C9A227'},name:'HAR median'});
+  const hc=inst.hist_cone||[];if(hc.length){tr.push({x:hc.map(r=>r.H),y:hc.map(r=>r.median),mode:'lines',line:{color:'#2FA56B',width:1.6,dash:'dot'},name:'hist median'});}
   if(inst.garch)tr.push({x:inst.garch.map(r=>r.H),y:inst.garch.map(r=>r.median),mode:'lines',line:{color:'#FFB020',width:2,dash:'dash'},name:'GARCH'});
-  window.Plotly.react(ref.current,tr,{...PLOT,xaxis:{title:'horizon (days)',gridcolor:'#22222E',zeroline:false},yaxis:{title:'ann vol %',gridcolor:'#22222E',zeroline:false},legend:{orientation:'h',font:{size:11}},hoverlabel:{bgcolor:'#16161F',bordercolor:'#6C63FF'}},{displayModeBar:false,responsive:true});
+  window.Plotly.react(ref.current,tr,{...PLOT,xaxis:{title:'horizon (days)',gridcolor:'#22344C',zeroline:false},yaxis:{title:'ann vol %',gridcolor:'#22344C',zeroline:false},legend:{orientation:'h',font:{size:11}},hoverlabel:{bgcolor:'#16293F',bordercolor:'#C9A227'}},{displayModeBar:false,responsive:true});
  },[inst]);return <div ref={ref} style={{height:420}}/>;}
 function RegimeChart({rc}){const ref=useRef();
  useEffect(()=>{if(!rc||!rc.date||!window.Plotly)return;
-  const FILLC={0:'rgba(0,212,170,0.13)',1:'rgba(108,99,255,0.12)',2:'rgba(255,71,87,0.16)'};
+  const FILLC={0:'rgba(47,165,107,0.13)',1:'rgba(201,162,39,0.12)',2:'rgba(255,71,87,0.16)'};
   const d=rc.date,p=rc.price,g=rc.regime; let shapes=[],s=0;
   for(let i=1;i<=g.length;i++){ if(i===g.length||g[i]!==g[s]){
    shapes.push({type:'rect',xref:'x',yref:'paper',x0:d[s],x1:d[Math.min(i,g.length-1)],y0:0,y1:1,
@@ -213,32 +213,32 @@ function RegimeChart({rc}){const ref=useRef();
   window.Plotly.react(ref.current,[{x:d,y:p,mode:'lines',line:{color:'#F0F0FF',width:1.5},name:'price',
     hovertemplate:'%{x}<br>%{y}<extra></extra>'}],
    {...PLOT,shapes,margin:{t:8,r:10,b:34,l:56},xaxis:{gridcolor:'#1c1c26',zeroline:false},
-    yaxis:{title:'price',gridcolor:'#22222E',zeroline:false},hoverlabel:{bgcolor:'#16161F',bordercolor:'#6C63FF'}},
+    yaxis:{title:'price',gridcolor:'#22344C',zeroline:false},hoverlabel:{bgcolor:'#16293F',bordercolor:'#C9A227'}},
    {displayModeBar:false,responsive:true});
  },[rc]);return <div ref={ref} style={{height:320}}/>;}
 function SeasonChart({sea}){const ref=useRef();
  useEffect(()=>{if(!sea||!window.Plotly)return;const dow=sea.dow,intr=sea.intraday;
-  const t1={x:dow.map(d=>d.day),y:dow.map(d=>d.vol),type:'bar',marker:{color:dow.map(d=>d.day==='Thu'?'#FFB020':'#6C63FF')},xaxis:'x',yaxis:'y'};
-  const t2={x:intr.map(d=>d.t),y:intr.map(d=>d.vol),mode:'lines',line:{color:'#00D4AA',width:2},fill:'tozeroy',fillcolor:'rgba(0,212,170,.08)',xaxis:'x2',yaxis:'y2'};
+  const t1={x:dow.map(d=>d.day),y:dow.map(d=>d.vol),type:'bar',marker:{color:dow.map(d=>d.day==='Thu'?'#FFB020':'#C9A227')},xaxis:'x',yaxis:'y'};
+  const t2={x:intr.map(d=>d.t),y:intr.map(d=>d.vol),mode:'lines',line:{color:'#2FA56B',width:2},fill:'tozeroy',fillcolor:'rgba(47,165,107,.08)',xaxis:'x2',yaxis:'y2'};
   window.Plotly.react(ref.current,[t1,t2],{...PLOT,grid:{rows:1,columns:2,pattern:'independent'},showlegend:false,margin:{t:26,r:10,b:30,l:42},
     annotations:[{text:'avg move by weekday (%)',x:0,xref:'paper',y:1.15,yref:'paper',showarrow:false,font:{size:11,color:'#8888AA'},xanchor:'left'},
                  {text:'intraday U-shape (avg 1-min move %)',x:1,xref:'paper',y:1.15,yref:'paper',showarrow:false,font:{size:11,color:'#8888AA'},xanchor:'right'}],
-    xaxis:{gridcolor:'#22222E'},yaxis:{gridcolor:'#22222E'},xaxis2:{gridcolor:'#22222E'},yaxis2:{gridcolor:'#22222E'}},{displayModeBar:false,responsive:true});
+    xaxis:{gridcolor:'#22344C'},yaxis:{gridcolor:'#22344C'},xaxis2:{gridcolor:'#22344C'},yaxis2:{gridcolor:'#22344C'}},{displayModeBar:false,responsive:true});
  },[sea]);return <div ref={ref} style={{height:230}}/>;}
 function SeasonalityPanel({sea}){ if(!sea||sea.error) return <div className="sub">{(sea&&sea.error)||'n/a'}</div>;
  const e=sea.expiry,calm=sea.dow.reduce((a,b)=>b.vol<a.vol?b:a),wild=sea.dow.reduce((a,b)=>b.vol>a.vol?b:a);
  return <div><SeasonChart sea={sea}/>
   <div style={{display:'flex',gap:12,marginTop:12,flexWrap:'wrap'}}>
-   <StatBox k="Thursday (expiry day)" v={e.thu+'%'} d={'vs '+e.other+'% other days'} tone={e.thu>e.other?'#FFB020':'#00D4AA'}/>
-   <StatBox k="Calmest weekday" v={calm.day} d={calm.vol+'% avg move'} tone="#00D4AA"/>
+   <StatBox k="Thursday (expiry day)" v={e.thu+'%'} d={'vs '+e.other+'% other days'} tone={e.thu>e.other?'#FFB020':'#2FA56B'}/>
+   <StatBox k="Calmest weekday" v={calm.day} d={calm.vol+'% avg move'} tone="#2FA56B"/>
    <StatBox k="Wildest weekday" v={wild.day} d={wild.vol+'% avg move'} tone="#FF4757"/>
   </div></div>;}
 function ForecastTrackChart({ft}){const ref=useRef();
  useEffect(()=>{if(!ft||ft.error||!window.Plotly)return;
   window.Plotly.react(ref.current,[
    {x:ft.date,y:ft.actual,mode:'lines',line:{color:'#F0F0FF',width:1.6},name:'actual'},
-   {x:ft.date,y:ft.pred,mode:'lines',line:{color:'#6C63FF',width:2,dash:'dot'},name:'our forecast'}],
-   {...PLOT,margin:{t:8,r:10,b:30,l:46},legend:{orientation:'h',font:{size:11}},xaxis:{gridcolor:'#22222E'},yaxis:{title:'ann vol %',gridcolor:'#22222E'}},{displayModeBar:false,responsive:true});
+   {x:ft.date,y:ft.pred,mode:'lines',line:{color:'#C9A227',width:2,dash:'dot'},name:'our forecast'}],
+   {...PLOT,margin:{t:8,r:10,b:30,l:46},legend:{orientation:'h',font:{size:11}},xaxis:{gridcolor:'#22344C'},yaxis:{title:'ann vol %',gridcolor:'#22344C'}},{displayModeBar:false,responsive:true});
  },[ft]);return <div ref={ref} style={{height:240}}/>;}
 function StressPanel({s}){ if(!s||s.error) return <div className="sub">{(s&&s.error)||'n/a'}</div>;
  return <table><thead><tr><th className="l">downside scenario</th><th>move</th><th>price</th><th>loss / ₹1L long</th></tr></thead>
@@ -247,24 +247,24 @@ function StressPanel({s}){ if(!s||s.error) return <div className="sub">{(s&&s.er
     <td style={{color:'#FF4757',fontWeight:700}}>₹{r.loss_per_lakh.toLocaleString('en-IN')}</td></tr>)}</tbody></table>;}
 function Hist({inst}){const ref=useRef();
  useEffect(()=>{if(!inst||!window.Plotly)return;
-  window.Plotly.react(ref.current,[{x:inst.hist_series.date,y:inst.hist_series.vol,mode:'lines',line:{color:'#00D4AA',width:1.3},fill:'tozeroy',fillcolor:'rgba(0,212,170,0.06)'}],
-   {...PLOT,xaxis:{gridcolor:'#22222E'},yaxis:{title:'ann vol %',gridcolor:'#22222E'}},{displayModeBar:false,responsive:true});
+  window.Plotly.react(ref.current,[{x:inst.hist_series.date,y:inst.hist_series.vol,mode:'lines',line:{color:'#2FA56B',width:1.3},fill:'tozeroy',fillcolor:'rgba(47,165,107,0.06)'}],
+   {...PLOT,xaxis:{gridcolor:'#22344C'},yaxis:{title:'ann vol %',gridcolor:'#22344C'}},{displayModeBar:false,responsive:true});
  },[inst]);return <div ref={ref} style={{height:240}}/>;}
 function Corr({corr}){const ref=useRef();
  useEffect(()=>{if(!corr||!window.Plotly)return;const L=corr.labels;
   window.Plotly.react(ref.current,[{z:corr.matrix,x:L,y:L,type:'heatmap',zmin:-1,zmax:1,
-   colorscale:[[0,'#FF4757'],[0.5,'#0A0A0F'],[1,'#00D4AA']],text:corr.matrix,texttemplate:'%{text}',textfont:{size:10,family:'JetBrains Mono'},showscale:true,colorbar:{thickness:10,len:.7}}],
+   colorscale:[[0,'#FF4757'],[0.5,'#0A1626'],[1,'#2FA56B']],text:corr.matrix,texttemplate:'%{text}',textfont:{size:10,family:'JetBrains Mono'},showscale:true,colorbar:{thickness:10,len:.7}}],
    {...PLOT,margin:{t:8,r:8,b:96,l:96},xaxis:{tickangle:-40},yaxis:{autorange:'reversed'}},{displayModeBar:false,responsive:true});
  },[corr]);if(!corr)return null;
  return <div><div ref={ref} style={{height:400}}/><div className="chips">
-   {corr.top.map((p,i)=><span key={i} className="badge" style={{background:p[2]>0?'rgba(0,212,170,.15)':'rgba(255,71,87,.15)',color:p[2]>0?'var(--accent2)':'var(--danger)'}}>{p[0]}–{p[1]} {p[2]}</span>)}</div></div>;}
+   {corr.top.map((p,i)=><span key={i} className="badge" style={{background:p[2]>0?'rgba(47,165,107,.15)':'rgba(255,71,87,.15)',color:p[2]>0?'var(--accent2)':'var(--danger)'}}>{p[0]}–{p[1]} {p[2]}</span>)}</div></div>;}
 function BandTable({bands,price,title}){return <div style={{flex:1,minWidth:300}}><div className="sub" style={{marginBottom:6}}>{title}</div>
  <table><thead><tr><th className="l">H</th><th>-2σ</th><th>-1σ</th><th>price</th><th>+1σ</th><th>+2σ</th></tr></thead>
   <tbody>{bands.map(b=><tr key={b.H}><td className="l">{b.H}d</td><td className="down">{fmt(b.dn2)}</td><td>{fmt(b.dn1)}</td>
-    <td style={{color:'#6C63FF',fontWeight:700}}>{fmt(price)}</td><td>{fmt(b.up1)}</td><td className="up">{fmt(b.up2)}</td></tr>)}</tbody></table></div>;}
-function Reliability({cov}){if(!cov)return null;const rows=[];const ms=['raw','drift','tuned'];const lab={raw:'plain',drift:'+drift',tuned:'auto-tuned'};const col={raw:'#8888AA',drift:'#00D4AA',tuned:'#6C63FF'};
+    <td style={{color:'#C9A227',fontWeight:700}}>{fmt(price)}</td><td>{fmt(b.up1)}</td><td className="up">{fmt(b.up2)}</td></tr>)}</tbody></table></div>;}
+function Reliability({cov}){if(!cov)return null;const rows=[];const ms=['raw','drift','tuned'];const lab={raw:'plain',drift:'+drift',tuned:'auto-tuned'};const col={raw:'#8888AA',drift:'#2FA56B',tuned:'#C9A227'};
  Object.keys(cov).forEach(H=>ms.forEach(m=>{if(cov[H][m])rows.push([H,m,cov[H][m]])}));
- const cell=(val,tgt)=>{const p=val*100;const off=Math.abs(p-tgt);const c=off<=4?'#00D4AA':off<=9?'#E8B339':'#FF4757';return <td style={{color:c,fontWeight:off<=4?700:400}}>{p.toFixed(0)}%</td>;};
+ const cell=(val,tgt)=>{const p=val*100;const off=Math.abs(p-tgt);const c=off<=4?'#2FA56B':off<=9?'#E8B339':'#FF4757';return <td style={{color:c,fontWeight:off<=4?700:400}}>{p.toFixed(0)}%</td>;};
  return <table><thead><tr><th className="l">H</th><th className="l">band</th><th>1σ <span className="sub">·68</span></th><th>1.5σ <span className="sub">·87</span></th><th>2σ <span className="sub">·95</span></th></tr></thead>
   <tbody>{rows.map(([H,m,d],i)=><tr key={i}><td className="l">{m==='raw'?H+'d':''}</td><td className="l" style={{color:col[m],fontWeight:m==='tuned'?700:400}}>{lab[m]}</td>
    {cell(d['1'],68)}{cell(d['1.5'],87)}{cell(d['2'],95)}</tr>)}</tbody></table>;}
@@ -295,38 +295,38 @@ function TomorrowPanel({t}){ if(!t||t.error) return <div className="sub">{(t&&t.
   </div>
   <div style={{marginTop:14}}><div className="sub" style={{marginBottom:6}}>Where tomorrow's close will most likely land — each row calibrated so it's right that % of the time on this market's own history</div>
    <table><thead><tr><th className="l">confidence</th><th>low</th><th>now</th><th>high</th><th>range</th></tr></thead>
-    <tbody>{t.bands.map(b=><tr key={b.target}><td className="l"><b style={{color:b.target===75?'#00D4AA':'#8B83FF'}}>{b.target}%</b> chance inside</td>
-      <td className="down">{fmt(b.low)}</td><td style={{color:'#6C63FF',fontWeight:700}}>{fmt(t.current_price)}</td>
+    <tbody>{t.bands.map(b=><tr key={b.target}><td className="l"><b style={{color:b.target===75?'#2FA56B':'#E5C45A'}}>{b.target}%</b> chance inside</td>
+      <td className="down">{fmt(b.low)}</td><td style={{color:'#C9A227',fontWeight:700}}>{fmt(t.current_price)}</td>
       <td className="up">{fmt(b.high)}</td><td>{'±'+b.move_pct+'%'}</td></tr>)}</tbody></table></div>
  </div>;}
 function Overview({d,sel,onPick}){
- const lc={calm:'#00D4AA',caution:'#FFB020',elevated:'#FF8C42',high:'#FF4757'};
+ const lc={calm:'#2FA56B',caution:'#FFB020',elevated:'#FF8C42',high:'#FF4757'};
  const rows=Object.keys(d).map(n=>{const x=d[n],po=x.posture||{},tm=x.tomorrow||{};
   return {n,score:po.score,level:po.level,regime:x.daily_regime,calm:tm.p_calm_tomorrow,move:tm.sigma_pct,opt:x.options};});
  return <table><thead><tr><th className="l">market</th><th>risk (0=calm)</th><th>regime</th><th>calm tomorrow</th><th>1-day move</th><th>options</th></tr></thead>
-  <tbody>{rows.map(r=><tr key={r.n} onClick={()=>onPick(r.n)} style={{cursor:'pointer',background:r.n===sel?'rgba(108,99,255,.08)':'transparent'}}>
+  <tbody>{rows.map(r=><tr key={r.n} onClick={()=>onPick(r.n)} style={{cursor:'pointer',background:r.n===sel?'rgba(201,162,39,.08)':'transparent'}}>
     <td className="l"><b>{r.n}</b></td>
     <td><span style={{fontFamily:'var(--mono)',fontWeight:700,color:lc[r.level]||'#8888AA'}}>{r.score!=null?r.score:'—'}</span> <span className="sub">{r.level||''}</span></td>
     <td><Badge r={r.regime}/></td>
-    <td style={{color:r.calm>=78?'#00D4AA':r.calm>=60?'#FFB020':'#FF4757',fontWeight:600}}>{r.calm!=null?r.calm+'%':'—'}</td>
+    <td style={{color:r.calm>=78?'#2FA56B':r.calm>=60?'#FFB020':'#FF4757',fontWeight:600}}>{r.calm!=null?r.calm+'%':'—'}</td>
     <td>{r.move!=null?'±'+r.move+'%':'—'}</td>
-    <td>{r.opt&&!r.opt.error?<span style={{color:r.opt.state==='cheap'?'#00D4AA':r.opt.state==='rich'?'#FF4757':'#FFB020',fontWeight:600}}>{r.opt.state}</span>:<span className="sub">—</span>}</td></tr>)}</tbody></table>;}
+    <td>{r.opt&&!r.opt.error?<span style={{color:r.opt.state==='cheap'?'#2FA56B':r.opt.state==='rich'?'#FF4757':'#FFB020',fontWeight:600}}>{r.opt.state}</span>:<span className="sub">—</span>}</td></tr>)}</tbody></table>;}
 function ChangesPanel({c}){ if(!c||c.error) return <div className="sub">{(c&&c.error)||'n/a'}</div>;
- const sym={flip:'⇄',up:'▲',down:'▼',flat:'•'}; const col={flip:'#FFB020',up:'#FF4757',down:'#00D4AA',flat:'#8888AA'};
+ const sym={flip:'⇄',up:'▲',down:'▼',flat:'•'}; const col={flip:'#FFB020',up:'#FF4757',down:'#2FA56B',flat:'#8888AA'};
  return <div className="chips" style={{display:'flex',gap:10,flexWrap:'wrap'}}>
   {c.items.map((it,i)=><div key={i} style={{flex:'1 1 180px',minWidth:170,background:'var(--surface2)',border:'1px solid var(--line)',borderLeft:'3px solid '+(col[it.tone]||'#8888AA'),borderRadius:10,padding:'10px 13px'}}>
    <div className="sub" style={{fontSize:11,textTransform:'uppercase',letterSpacing:'.5px'}}>{it.label}</div>
    <div style={{marginTop:4,fontWeight:600,color:col[it.tone]||'var(--text)'}}>{sym[it.tone]||'•'} {it.detail}</div></div>)}
  </div>;}
 function OptionsEdge({o}){ if(!o) return null; if(o.error) return <div className="sub">{o.error}</div>;
- const tone=o.state==='cheap'?'#00D4AA':o.state==='rich'?'#FF4757':'#FFB020';
+ const tone=o.state==='cheap'?'#2FA56B':o.state==='rich'?'#FF4757':'#FFB020';
  return <div>
   <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
    <StatBox k="Our vol forecast (HAR)" v={o.forecast_vol+'%'} d="expected realized vol"/>
    <StatBox k="Implied vol (India VIX)" v={o.implied_vol+'%'} d={'fear gauge · '+o.vix_pct+'th pct of history'}/>
    <StatBox k="Edge (forecast − implied)" v={(o.gap>=0?'+':'')+o.gap} d={(o.rel_pct>=0?'+':'')+o.rel_pct+'% vs implied'} tone={tone}/>
   </div>
-  <div style={{marginTop:12,padding:'11px 14px',borderRadius:10,background:'rgba(108,99,255,.07)',borderLeft:'3px solid '+tone}}>
+  <div style={{marginTop:12,padding:'11px 14px',borderRadius:10,background:'rgba(201,162,39,.07)',borderLeft:'3px solid '+tone}}>
    <div style={{fontWeight:800,color:tone,textTransform:'uppercase',fontSize:12,letterSpacing:'.6px'}}>{o.state} · options</div>
    <div style={{marginTop:4,fontSize:14}}>{o.action}</div></div>
  </div>;}
@@ -358,7 +358,7 @@ function PositionSizer({t,regime}){ const [cap,setCap]=useState(100000),[risk,se
   </div>
   <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
    {out('Stop distance','±'+stopPct.toFixed(2)+'%',Math.round(stopPts).toLocaleString('en-IN')+' pts',wild?'#FFB020':undefined)}
-   {out('Position size',qty.toLocaleString('en-IN')+(lots!=null?' · '+lots+' lots':''),'units to trade','#00D4AA')}
+   {out('Position size',qty.toLocaleString('en-IN')+(lots!=null?' · '+lots+' lots':''),'units to trade','#2FA56B')}
    {out('Exposure',money(exposure),lev.toFixed(1)+'× capital')}
    {out('Max loss if stopped',money(maxRisk),'= '+risk+'% of capital','#FF4757')}
    {out('Target (1:2 R:R)',Math.round(stopPts*2).toLocaleString('en-IN')+' pts','for 2× your risk')}
@@ -367,8 +367,8 @@ function PositionSizer({t,regime}){ const [cap,setCap]=useState(100000),[risk,se
  </div>;}
 function OISpark({oi}){const ref=useRef();
  useEffect(()=>{if(!oi||!oi.spark||!window.Plotly)return;
-  window.Plotly.react(ref.current,[{x:oi.spark.t,y:oi.spark.oi,mode:'lines',line:{color:'#6C63FF',width:1.6},fill:'tozeroy',fillcolor:'rgba(108,99,255,0.08)'}],
-   {...PLOT,margin:{t:8,r:10,b:24,l:58},xaxis:{gridcolor:'#22222E',showticklabels:false},yaxis:{title:'total OI',gridcolor:'#22222E'}},{displayModeBar:false,responsive:true});
+  window.Plotly.react(ref.current,[{x:oi.spark.t,y:oi.spark.oi,mode:'lines',line:{color:'#C9A227',width:1.6},fill:'tozeroy',fillcolor:'rgba(201,162,39,0.08)'}],
+   {...PLOT,margin:{t:8,r:10,b:24,l:58},xaxis:{gridcolor:'#22344C',showticklabels:false},yaxis:{title:'total OI',gridcolor:'#22344C'}},{displayModeBar:false,responsive:true});
  },[oi]);return <div ref={ref} style={{height:170}}/>;}
 function OIPanel({oi}){ if(!oi||oi.error) return <div className="sub">{(oi&&oi.error)||'no OI feed for this market'}</div>;
  const bias=oi.oi_net_bias, tone=bias==='bullish'?'var(--accent2)':bias==='bearish'?'var(--danger)':'var(--muted)';
@@ -410,16 +410,16 @@ function SwitchGauge({sw,regime}){ if(!sw||sw.error) return <div className="sub"
    <StatBox k="Change-point (BOCPD)" v={(sw.bocpd*100).toFixed(0)+'%'} d="distribution shift alarm" tone={sw.bocpd>0.3?'var(--warn)':undefined}/>
    <StatBox k="Now in regime" v={<Badge r={regime}/>} d={'as of '+sw.asof}/>
   </div></div>;}
-function Plain({children}){return <div style={{background:'rgba(108,99,255,.07)',borderLeft:'3px solid #6C63FF',borderRadius:'0 8px 8px 0',padding:'9px 13px',margin:'10px 0 4px',fontSize:13.5,lineHeight:1.55,color:'#C2C2DA'}}><b style={{color:'#8B83FF'}}>In plain words — </b>{children}</div>;}
+function Plain({children}){return <div style={{background:'rgba(201,162,39,.07)',borderLeft:'3px solid #C9A227',borderRadius:'0 8px 8px 0',padding:'9px 13px',margin:'10px 0 4px',fontSize:13.5,lineHeight:1.55,color:'#C2C2DA'}}><b style={{color:'#E5C45A'}}>In plain words — </b>{children}</div>;}
 function RiskPosture({p,bandPct}){ if(!p||p.error) return <div className="sub">{(p&&p.error)||'n/a'}</div>;
- const C={calm:'#00D4AA',caution:'#FFB020',elevated:'#FF8C42',high:'#FF4757'}; const tone=C[p.level]||'#8888AA';
+ const C={calm:'#2FA56B',caution:'#FFB020',elevated:'#FF8C42',high:'#FF4757'}; const tone=C[p.level]||'#8888AA';
  return <div>
   <div style={{display:'flex',gap:24,flexWrap:'wrap',alignItems:'center'}}>
    <div style={{minWidth:150}}>
     <div style={{fontFamily:'var(--mono)',fontSize:46,fontWeight:800,color:tone,lineHeight:1}}>{p.score}<span className="sub" style={{fontSize:15}}>/100</span></div>
     <div style={{textTransform:'uppercase',letterSpacing:'1px',fontWeight:800,color:tone,marginTop:4,fontSize:15}}>{p.level}</div>
     <div className="gauge" style={{marginTop:10,width:150}}><div style={{width:p.score+'%',background:tone}}/></div>
-    <div className="sub" style={{marginTop:7,fontSize:11,lineHeight:1.4}}><b style={{color:'#00D4AA'}}>0 = calm</b> · <b style={{color:'#FF4757'}}>100 = stormy</b><br/>lower is calmer — this is a risk gauge, not up/down</div>
+    <div className="sub" style={{marginTop:7,fontSize:11,lineHeight:1.4}}><b style={{color:'#2FA56B'}}>0 = calm</b> · <b style={{color:'#FF4757'}}>100 = stormy</b><br/>lower is calmer — this is a risk gauge, not up/down</div>
    </div>
    <div style={{flex:1,minWidth:240}}>
     <div className="sub" style={{marginBottom:5}}>What to do</div>
@@ -428,15 +428,15 @@ function RiskPosture({p,bandPct}){ if(!p||p.error) return <div className="sub">{
    </div>
   </div>
   <div style={{marginTop:14}}><div className="sub" style={{marginBottom:6}}>Why — what's pushing the score right now</div>
-   <div className="chips">{p.drivers.map((d,i)=><span key={i} className="badge" style={{background:d.push==='up'?'rgba(255,71,87,.15)':'rgba(0,212,170,.15)',color:d.push==='up'?'#FF4757':'#00D4AA'}}>{d.factor} {d.push==='up'?'↑ risk':'↓ risk'}</span>)}</div></div>
+   <div className="chips">{p.drivers.map((d,i)=><span key={i} className="badge" style={{background:d.push==='up'?'rgba(255,71,87,.15)':'rgba(47,165,107,.15)',color:d.push==='up'?'#FF4757':'#2FA56B'}}>{d.factor} {d.push==='up'?'↑ risk':'↓ risk'}</span>)}</div></div>
   <div style={{display:'flex',gap:12,marginTop:16,flexWrap:'wrap'}}>
-   <StatBox k="Accuracy (AUC)" v={p.auc!=null?p.auc:'—'} d="spots high-vol periods" tone={p.auc>0.7?'#00D4AA':undefined}/>
-   <StatBox k="Edge vs persistence" v={p.lift!=null?(p.lift>0?'+':'')+p.lift:'—'} d="what the factors add" tone={p.lift>0?'#00D4AA':'#FF4757'}/>
+   <StatBox k="Accuracy (AUC)" v={p.auc!=null?p.auc:'—'} d="spots high-vol periods" tone={p.auc>0.7?'#2FA56B':undefined}/>
+   <StatBox k="Edge vs persistence" v={p.lift!=null?(p.lift>0?'+':'')+p.lift:'—'} d="what the factors add" tone={p.lift>0?'#2FA56B':'#FF4757'}/>
    <StatBox k="Best-case (GBM)" v={p.auc_gb!=null?p.auc_gb:'—'} d="nonlinear upper bound"/>
   </div>
   <details style={{marginTop:14}}><summary className="sub" style={{cursor:'pointer'}}>Factor weights — the scorecard (+ = raises risk, − = lowers)</summary>
    <table style={{marginTop:8}}><thead><tr><th className="l">factor</th><th>weight</th></tr></thead>
-    <tbody>{p.weights.map((w,i)=><tr key={i}><td className="l">{w.factor}</td><td style={{color:w.coef>0?'#FF4757':'#00D4AA',fontWeight:600}}>{w.coef>0?'+':''}{w.coef}</td></tr>)}</tbody></table></details>
+    <tbody>{p.weights.map((w,i)=><tr key={i}><td className="l">{w.factor}</td><td style={{color:w.coef>0?'#FF4757':'#2FA56B',fontWeight:600}}>{w.coef>0?'+':''}{w.coef}</td></tr>)}</tbody></table></details>
   </div>;}
 function KPI({k,v,d,dir,i}){return <div className="kpi" style={{animationDelay:(i*80)+'ms'}}>
  <div className="k">{k}</div><div className="v">{v}</div>
@@ -492,7 +492,7 @@ function App(){
      <Overview d={d} sel={sel} onPick={setSel}/></div>
 
     {x.regime_chart&&<div className="panel" id="regimemap"><h3>Regime Map — Price &amp; Market Mood <span className="tag">{sel} · last ~2 years</span></h3>
-     <Plain>The whole story in one picture: the price line, with the background coloured by the market's mood — <b style={{color:'#00D4AA'}}>green = calm</b>, <b style={{color:'#8B83FF'}}>purple = normal</b>, <b style={{color:'#FF4757'}}>red = wild</b>. Red stretches are where big swings clustered. This is the regime detector, drawn.</Plain>
+     <Plain>The whole story in one picture: the price line, with the background coloured by the market's mood — <b style={{color:'#2FA56B'}}>green = calm</b>, <b style={{color:'#E5C45A'}}>purple = normal</b>, <b style={{color:'#FF4757'}}>red = wild</b>. Red stretches are where big swings clustered. This is the regime detector, drawn.</Plain>
      <RegimeChart rc={x.regime_chart}/>
      <div style={{display:'flex',gap:10,marginTop:8,flexWrap:'wrap'}}><span className="badge b-quiet">calm</span><span className="badge b-normal">normal</span><span className="badge b-explosive">wild</span><span className="sub" style={{marginLeft:'auto'}}>shaded by daily volatility regime (HMM, causal)</span></div></div>}
 
@@ -515,12 +515,12 @@ function App(){
      <p className="sub" style={{marginTop:10}}>Diagnostics describe the regime (Hurst = trend vs mean-revert), tail risk (excess-kurtosis + EVT tail index), skew, and downside (VaR/CVaR, drawdown). State, not alpha.</p></div>
 
     {x.tomorrow&&<div className="panel" id="tomorrow"><h3>What Tomorrow Likely Looks Like <span className="tag">{sel} · next session</span></h3>
-     <Plain>Honest next-day forecast. We <b>don't</b> predict up vs down — that's a coin-flip nobody beats. We predict <b>how the market behaves</b>: how big the swing will be, whether it stays calm, and the price range it'll most likely hold in. The <b style={{color:'#00D4AA'}}>75% row</b> is tuned so tomorrow's close lands inside it 3 times out of 4 — measured on this market's real history, not assumed.</Plain>
+     <Plain>Honest next-day forecast. We <b>don't</b> predict up vs down — that's a coin-flip nobody beats. We predict <b>how the market behaves</b>: how big the swing will be, whether it stays calm, and the price range it'll most likely hold in. The <b style={{color:'#2FA56B'}}>75% row</b> is tuned so tomorrow's close lands inside it 3 times out of 4 — measured on this market's real history, not assumed.</Plain>
      <TomorrowPanel t={x.tomorrow}/>
      <p className="sub" style={{marginTop:10}}>Pure statistics on daily history — exploits volatility clustering (calm follows calm), which is genuinely predictable. Causal: σ = √(today's variance); the band multiplier is the empirical quantile of past |move|/σ. No direction bet, no look-ahead.</p></div>}
 
     {x.options&&<div className="panel" id="options"><h3>Options Edge — Cheap or Rich? <span className="tag">{sel} · vol risk premium</span></h3>
-     <Plain>The one place this turns into a trade. We compare <b>our volatility forecast</b> (how much the market will actually move) against <b>implied volatility</b> (what option prices are charging — India VIX). Forecast higher → options are <b style={{color:'#00D4AA'}}>cheap, buy them</b>; forecast lower → options are <b style={{color:'#FF4757'}}>rich, sell them</b>. This monetizes the volatility edge — no up/down call needed.</Plain>
+     <Plain>The one place this turns into a trade. We compare <b>our volatility forecast</b> (how much the market will actually move) against <b>implied volatility</b> (what option prices are charging — India VIX). Forecast higher → options are <b style={{color:'#2FA56B'}}>cheap, buy them</b>; forecast lower → options are <b style={{color:'#FF4757'}}>rich, sell them</b>. This monetizes the volatility edge — no up/down call needed.</Plain>
      <OptionsEdge o={x.options}/>
      <p className="sub" style={{marginTop:10}}>HAR realized-vol forecast (~20 trading days) vs India VIX (~30 calendar days). India VIX is NIFTY-only; BankNifty/commodities need their own listed option IV. Structural note: realized lands below implied ~60% of days (the variance risk premium), a mild base edge to selling.</p></div>}
 
@@ -538,13 +538,13 @@ function App(){
      <Plain>Proof the volatility forecast is real: our prediction (dotted) laid over what actually happened (solid), out-of-sample. They track together — that's the edge, shown honestly, not claimed.</Plain>
      <ForecastTrackChart ft={x.forecast_track}/>
      <div style={{display:'flex',gap:12,marginTop:12,flexWrap:'wrap'}}>
-      <StatBox k="Forecast vs actual (corr)" v={x.forecast_track.corr} d="1.0 = perfect tracking" tone={x.forecast_track.corr>0.4?'#00D4AA':undefined}/>
+      <StatBox k="Forecast vs actual (corr)" v={x.forecast_track.corr} d="1.0 = perfect tracking" tone={x.forecast_track.corr>0.4?'#2FA56B':undefined}/>
       <StatBox k="Fit (R²)" v={x.forecast_track.r2} d="variance explained, OOS"/>
       <StatBox k="Avg error" v={'±'+x.forecast_track.mae+'%'} d="mean abs error (vol pts)"/>
      </div></div>}
 
     {x.oi&&<div className="panel" id="oi"><h3>Futures Positioning — Open Interest <span className="tag">{sel} · who's in the trade</span></h3>
-     <Plain>Open interest is how many futures contracts are live. Read alongside price it shows whether a move is backed by <b>fresh money</b> (strong) or just position-closing (weak): <b style={{color:'#00D4AA'}}>long buildup</b> = new buyers, <b style={{color:'#FF4757'}}>short buildup</b> = new sellers, <b>short covering</b> = a rally running out of fuel. Recent-data signal (~1 month of futures OI).</Plain>
+     <Plain>Open interest is how many futures contracts are live. Read alongside price it shows whether a move is backed by <b>fresh money</b> (strong) or just position-closing (weak): <b style={{color:'#2FA56B'}}>long buildup</b> = new buyers, <b style={{color:'#FF4757'}}>short buildup</b> = new sellers, <b>short covering</b> = a rally running out of fuel. Recent-data signal (~1 month of futures OI).</Plain>
      <OIPanel oi={x.oi}/>
      <p className="sub" style={{marginTop:10}}>Causal: OI forward-filled onto the price grid; buildup = sign(price move) × (rising OI ? strong : weak). Positioning context — blended into the direction call only when explicitly enabled.</p></div>}
 
@@ -564,7 +564,7 @@ function App(){
       <div><div style={{margin:'4px 0 14px'}}>mood now <Badge r={intr.regime}/></div>
        <div className="sub">chance of a sharp move soon</div><div className="gauge"><div style={{width:(intr.spike_pressure||0)+'%'}}/></div>
        <div style={{fontFamily:'var(--mono)',fontSize:24,fontWeight:700,marginTop:8}}>{intr.spike_pressure}<span className="sub" style={{fontSize:13}}>/100</span></div>
-       <div style={{marginTop:10}} className="sub">bias: <b style={{color:intr.spike_dir==='up'?'#00D4AA':intr.spike_dir==='down'?'#FF4757':'#8888AA'}}>{intr.spike_dir}</b></div>
+       <div style={{marginTop:10}} className="sub">bias: <b style={{color:intr.spike_dir==='up'?'#2FA56B':intr.spike_dir==='down'?'#FF4757':'#8888AA'}}>{intr.spike_dir}</b></div>
        <div className="sub" style={{marginTop:8}}>{intr.asof}</div></div>}
      </div>
     </div>
@@ -574,7 +574,7 @@ function App(){
       <Plain>Expected swing size over different windows — a few days, a week, a month out. Bigger number = bigger expected moves. The ±1σ / ±2σ columns are the likely vs extreme range.</Plain>
       <table><thead><tr><th className="l">H</th><th>-2σ</th><th>-1σ</th><th>median</th><th>+1σ</th><th>+2σ</th><th>R²</th></tr></thead>
        <tbody>{x.forecast_cone.map(r=><tr key={r.H}><td className="l">{r.H}d</td><td className="down">{fmt(r.dn2)}</td><td>{fmt(r.dn1)}</td>
-         <td style={{color:'#6C63FF',fontWeight:700}}>{fmt(r.median)}</td><td>{fmt(r.up1)}</td><td className="up">{fmt(r.up2)}</td><td>{fmt(r.r2)}</td></tr>)}</tbody></table></div>
+         <td style={{color:'#C9A227',fontWeight:700}}>{fmt(r.median)}</td><td>{fmt(r.up1)}</td><td className="up">{fmt(r.up2)}</td><td>{fmt(r.r2)}</td></tr>)}</tbody></table></div>
      <div className="panel"><h3>Range When Calm vs Wild <span className="tag">20d</span></h3>
       <Plain>If the market stays calm vs turns wild, here's the price range to expect. The "explosive" row is much wider — same market, very different risk.</Plain>
       <table><thead><tr><th className="l">regime</th><th>10%</th><th>median</th><th>90%</th><th>n</th></tr></thead>
@@ -588,8 +588,8 @@ function App(){
      <p className="sub" style={{marginTop:12}}>Technical: P(regime switch ≤10d), HistGBM on vol-of-vol features, walk-forward AUC ~0.65–0.67. BOCPD = Bayesian change-point alarm. Predicts switches, not the exact next state.</p></div>
 
     <div className="panel" id="price"><h3>Where the Price Will Probably Stay <span className="tag">now: {fmt(x.price_bands&&x.price_bands.current_price)}</span>
-      {x.price_bands&&x.price_bands.tuned&&<span className="badge" style={{marginLeft:8,background:'rgba(108,99,255,.18)',color:'#8B83FF'}}>AUTO-TUNED ×{fmt(x.price_bands.fatness)}</span>}</h3>
-     <Plain>The price levels it'll most likely stay between. Roughly 2 days out of 3 it lands inside the 1σ band, ~19 of 20 inside 2σ. <b style={{color:'#8B83FF'}}>Use the green "Auto-tuned" table</b> — it widens the band by each market's real fat-tail history so the hit-ratio actually matches its promise. Left = textbook (no trend), middle = trend-tilted, right = auto-tuned (best).</Plain>
+      {x.price_bands&&x.price_bands.tuned&&<span className="badge" style={{marginLeft:8,background:'rgba(201,162,39,.18)',color:'#E5C45A'}}>AUTO-TUNED ×{fmt(x.price_bands.fatness)}</span>}</h3>
+     <Plain>The price levels it'll most likely stay between. Roughly 2 days out of 3 it lands inside the 1σ band, ~19 of 20 inside 2σ. <b style={{color:'#E5C45A'}}>Use the green "Auto-tuned" table</b> — it widens the band by each market's real fat-tail history so the hit-ratio actually matches its promise. Left = textbook (no trend), middle = trend-tilted, right = auto-tuned (best).</Plain>
      <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
       <BandTable bands={x.price_bands.bands} price={x.price_bands.current_price} title="Textbook — no trend"/>
       <BandTable bands={x.price_bands.bands_drift} price={x.price_bands.current_price} title={'Trend-tilted — '+fmt(dr)+'%/day'}/>
@@ -597,7 +597,7 @@ function App(){
 
     <div className="row2">
      <div className="panel" id="rel"><h3>Track Record — Were We Right? <span className="tag">{sel} · hit ratio</span></h3>
-      <Plain>The report card — the hit ratio. Out of every past day, how often the real price actually stayed inside each band. Target is 68 / 87 / 95%; <b style={{color:'#00D4AA'}}>green = bang-on</b>, amber = a bit off, red = off. The <b style={{color:'#6C63FF'}}>"auto-tuned" row</b> is the calibrated band — it should sit closest to target.</Plain><Reliability cov={x.coverage}/>
+      <Plain>The report card — the hit ratio. Out of every past day, how often the real price actually stayed inside each band. Target is 68 / 87 / 95%; <b style={{color:'#2FA56B'}}>green = bang-on</b>, amber = a bit off, red = off. The <b style={{color:'#C9A227'}}>"auto-tuned" row</b> is the calibrated band — it should sit closest to target.</Plain><Reliability cov={x.coverage}/>
       <p className="sub" style={{marginTop:8}}>Walk-forward coverage. "auto-tuned" learns each market's fat-tail multiplier on training folds only, then applies it to unseen test folds — honest, no look-ahead.</p></div>
      <div className="panel"><h3>How Jumpy It's Been <span className="tag">recent</span></h3>
       <Plain>The price's actual jumpiness recently, plotted day by day — the history behind the forecasts above.</Plain><Hist inst={x}/></div>
@@ -617,7 +617,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 <script>
 (function(){
  var root=document.getElementById('root');
- function fail(t){root.innerHTML='<pre style="color:#FF4757;background:#111118;padding:28px;white-space:pre-wrap;font:13px monospace;line-height:1.5">DASHBOARD ERROR\n\n'+t+'</pre>';}
+ function fail(t){root.innerHTML='<pre style="color:#FF4757;background:#0F2036;padding:28px;white-space:pre-wrap;font:13px monospace;line-height:1.5">DASHBOARD ERROR\n\n'+t+'</pre>';}
  try{
   if(!window.React||!window.ReactDOM) return fail('React CDN failed to load (check network/unpkg.com).');
   if(!window.Babel) return fail('Babel CDN failed to load (check network/unpkg.com).');
