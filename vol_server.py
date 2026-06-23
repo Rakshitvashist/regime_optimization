@@ -335,6 +335,24 @@ function DecisionSummary({x}){
   {chg.length>0&&<div style={{marginTop:14}}><div className="sub" style={{marginBottom:6}}>Just changed</div>
    <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>{chg.slice(0,4).map((it,i)=><span key={i} className="badge" style={{background:'var(--surface2)',color:'var(--text)',border:'1px solid var(--line)'}}>{it.label}: {it.detail}</span>)}</div></div>}
  </div>;}
+function DecisionBoard({d,sel,onPick}){
+ const TONE={calm:'#2FA56B',caution:'#CAA53D',elevated:'#E08A3C',high:'#CF4A4A'};
+ const ACT={calm:'Trade as usual',caution:'Trim oversized',elevated:'Reduce size, widen stops',high:'Defensive — cut & hedge'};
+ return <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(285px,1fr))',gap:12}}>
+  {Object.keys(d).map(n=>{const x=d[n],po=x.posture||{},tm=x.tomorrow||{},o=(x.options&&!x.options.error)?x.options:null;
+   const lvl=po.level||'n/a',tone=TONE[lvl]||'#8BA1BA',b75=(tm.bands||[]).find(b=>b.target===75);
+   return <div key={n} onClick={()=>onPick(n)} style={{cursor:'pointer',background:n===sel?'rgba(201,162,39,.07)':'var(--surface2)',border:'1px solid var(--line)',borderLeft:'4px solid '+tone,borderRadius:12,padding:'13px 15px',transition:'transform .2s'}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline'}}>
+     <div style={{fontWeight:700,fontSize:15}}>{n}</div>
+     <div style={{fontFamily:'var(--mono)',fontWeight:800,color:tone}}>{po.score!=null?po.score:'—'}<span className="sub" style={{fontSize:11}}>/100</span></div></div>
+    <div style={{color:tone,fontWeight:700,fontSize:11.5,textTransform:'uppercase',letterSpacing:'.5px',marginTop:3}}>{lvl} · {ACT[lvl]||''}</div>
+    <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:9,alignItems:'center'}}>
+     <Badge r={x.daily_regime}/>
+     <span className="sub">±{tm.sigma_pct!=null?tm.sigma_pct:'?'}% · {tm.p_calm_tomorrow!=null?tm.p_calm_tomorrow+'% calm':''}</span>
+     {o&&<span className="badge" style={{background:'transparent',border:'1px solid var(--line)',color:o.state==='cheap'?'#2FA56B':o.state==='rich'?'#CF4A4A':'#CAA53D'}}>opt {o.state}</span>}</div>
+    {b75&&<div className="sub" style={{marginTop:8,fontFamily:'var(--mono)'}}>range {fmt(b75.low)} – {fmt(b75.high)}</div>}
+   </div>;})}
+ </div>;}
 function Overview({d,sel,onPick}){
  const lc={calm:'#2FA56B',caution:'#FFB020',elevated:'#FF8C42',high:'#FF4757'};
  const rows=Object.keys(d).map(n=>{const x=d[n],po=x.posture||{},tm=x.tomorrow||{};
@@ -478,7 +496,7 @@ function KPI({k,v,d,dir,i}){return <div className="kpi" style={{animationDelay:(
  <div className="k">{k}</div><div className="v">{v}</div>
  {d&&<div className={'d '+(dir||'flat')}>{dir==='up'?'▲':dir==='down'?'▼':'●'} {d}</div>}</div>;}
 
-const NAV=[['#top','Overview',IC.dash],['#summary','Decision Summary',IC.shield],['#overview','All Markets',IC.grid],['#regimemap','Regime Map',IC.chart],['#seasonality','Seasonality',IC.chart],['#changes','What Changed',IC.chart],['#stress','Stress Test',IC.shield],['#ftrack','Forecast Track',IC.chart],['#posture','Risk Decision',IC.shield],['#state','Market Mood',IC.shield],['#tomorrow','Tomorrow',IC.chart],['#options','Options Edge',IC.tag],['#sizer','Position Size',IC.tag],['#oi','Positioning',IC.layers],['#findings','What Works',IC.layers],['#cones','Price Swings',IC.chart],['#regime','Calm vs Wild',IC.layers],['#switch','Mood-Change Risk',IC.chart],['#price','Price Range',IC.tag],['#rel','Track Record',IC.shield],['#corr','What Moves Together',IC.grid]];
+const NAV=[['#top','Overview',IC.dash],['#summary','Decision Summary',IC.shield],['#board','Decision Board',IC.grid],['#overview','All Markets',IC.grid],['#regimemap','Regime Map',IC.chart],['#seasonality','Seasonality',IC.chart],['#changes','What Changed',IC.chart],['#stress','Stress Test',IC.shield],['#ftrack','Forecast Track',IC.chart],['#posture','Risk Decision',IC.shield],['#state','Market Mood',IC.shield],['#tomorrow','Tomorrow',IC.chart],['#options','Options Edge',IC.tag],['#sizer','Position Size',IC.tag],['#oi','Positioning',IC.layers],['#findings','What Works',IC.layers],['#cones','Price Swings',IC.chart],['#regime','Calm vs Wild',IC.layers],['#switch','Mood-Change Risk',IC.chart],['#price','Price Range',IC.tag],['#rel','Track Record',IC.shield],['#corr','What Moves Together',IC.grid]];
 const FINDINGS=[
  ['Direction (intraday)','GBM / LSTM','AUC ~0.53 — efficient','b-explosive','near-efficient'],
  ['Movement / spike (30m)','GBM + HMM gate','AUC ~0.65 · top-5% → 69% vs 42%','b-normal','modest edge'],
@@ -524,6 +542,10 @@ function App(){
     <div className="panel" id="summary"><h3>Decision Summary <span className="tag">{sel} · every forecast, one glance</span></h3>
      <Plain>The whole dashboard's conclusion in one place — the single risk verdict, the regime, tomorrow's expected move and range, the month-ahead volatility, options cheap/rich, and positioning. This is the <b>"what do I do"</b> view; the panels below show the detail behind each call.</Plain>
      <DecisionSummary x={x}/></div>
+
+    <div className="panel" id="board"><h3>Decision Board — All Markets <span className="tag">{Object.keys(d).length} markets · click to open</span></h3>
+     <Plain>Every market's verdict, stacked — the same one-glance call (risk level + action, regime, tomorrow's move, options) for all instruments at once. Scan for where it's <b style={{color:'#2FA56B'}}>calm</b> (trade freely) vs <b style={{color:'#CF4A4A'}}>stormy</b> (be defensive), then click a card to dive in.</Plain>
+     <DecisionBoard d={d} sel={sel} onPick={setSel}/></div>
 
     <MacroBanner macro={macro}/>
 
